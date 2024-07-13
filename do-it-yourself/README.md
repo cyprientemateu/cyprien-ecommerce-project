@@ -11,4 +11,4 @@
 
 
 
-!["C:\Users\cypri\OneDrive\Pictures\devopspic.jpg"]"C:\Users\cypri\OneDrive\Pictures\devopspic.jpg"
+![devops]"C:\Users\cypri\OneDrive\Pictures\devopspic.jpg"
