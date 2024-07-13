@@ -1,1 +1,2 @@
-# Eric-do-it-yourself
+# Cyprien Ecommerce project
+# Cyprien-do-it-yourself
