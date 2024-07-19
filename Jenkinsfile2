@@ -1,0 +1,61 @@
+pipeline {
+    agent any
+     
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+        disableConcurrentBuilds()
+        timeout(time: 20, unit: 'MINUTES')
+        timestamps()
+    }
+    
+    triggers {
+        githubPush()
+    }
+    stages {
+        stage ('Sanity Check') {
+            steps {
+                script {
+                   sanityChecks()
+                }
+            }
+        }
+        stage ('Checkout') {
+            steps {
+                dir("${WORKSPACE}/tcc-weather-app") {
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: "*/${params.BRANCH_NAME}"]],
+                        doGenerateSubmoduleConfigurations: false,
+                        extensions: [[$class: 'LocalBranch']],
+                        submoduleCfg: [],
+                        userRemoteConfigs: [[
+                        url: 'https://github.com/cyprientemateu/cyprien-ecommerce-project.git',
+                        // credentialsId: 'github-auth'
+                        ]]
+                    ])
+                }
+            }
+        }
+        stage('Open sonar-project.properties') {
+            steps {
+                dir("${WORKSPACE}/cyprien-ecommerce-project") {
+                    script {
+                        sh 'cat sonar-project.properties'
+                    }
+                }
+            }
+        }
+        stage('SonarQube Analysis') {
+            steps {
+                dir("${WORKSPACE}/cyprien-ecommerce-project") {
+                    script {
+                        withSonarQubeEnv('SonarScanner') {
+                            sh "sonar-scanner"
+                        }
+                    }
+                }
+            }
+        }
+    }        
+}
+    
