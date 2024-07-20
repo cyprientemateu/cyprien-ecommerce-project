@@ -3,13 +3,14 @@ pipeline {
      
     options {
         buildDiscarder(logRotator(numToKeepStr: '5'))
+        skipDefaultCheckout(true)
         disableConcurrentBuilds()
         timeout(time: 20, unit: 'MINUTES')
         timestamps()
     }
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: 'main', description: '')
-        string(name: 'SONAR_TAG', defaultValue: '5.0.1.3006', description: '')
+        // string(name: 'SONAR_TAG', defaultValue: '5.0.1.3006', description: '')
     }
     
     triggers {
