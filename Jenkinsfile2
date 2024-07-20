@@ -21,7 +21,7 @@ pipeline {
         }
         stage ('Checkout') {
             steps {
-                dir("${WORKSPACE}/tcc-weather-app") {
+                dir("${WORKSPACE}/cyprien-ecommerce-project") {
                     checkout([
                         $class: 'GitSCM',
                         branches: [[name: "*/${params.BRANCH_NAME}"]],
