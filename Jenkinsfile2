@@ -35,7 +35,7 @@ pipeline {
         }
         stage('Open sonar-project.properties') {
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself") {
+                dir("${WORKSPACE}/cyprien-ecommerce-project") {
                     script {
                         sh 'cat sonar-project.properties'
                     }
@@ -44,7 +44,7 @@ pipeline {
         }
         stage('SonarQube Analysis') {
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself") {
+                dir("${WORKSPACE}/cyprien-ecommerce-project") {
                     script {
                         withSonarQubeEnv('SonarScanner') {
                             sh "sonar-scanner"
