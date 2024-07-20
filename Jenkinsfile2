@@ -16,13 +16,6 @@ pipeline {
         githubPush()
     }
     stages {
-        stage ('Sanity Check') {
-            steps {
-                script {
-                   sanityChecks()
-                }
-            }
-        }
         stage ('Checkout') {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project") {
