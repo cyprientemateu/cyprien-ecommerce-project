@@ -45,7 +45,7 @@ pipeline {
         }
         stage('SonarQube Analysis') {
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project") {
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src") {
                     script {
                         withSonarQubeEnv('SonarScanner') {
                             sh "sonar-scanner"
