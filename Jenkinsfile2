@@ -23,23 +23,23 @@ pipeline {
                 }
             }
         }
-        // stage ('Checkout') {
-        //     steps {
-        //         dir("${WORKSPACE}/cyprien-ecommerce-project") {
-        //             checkout([
-        //                 $class: 'GitSCM',
-        //                 branches: [[name: "*/${params.BRANCH_NAME}"]],
-        //                 doGenerateSubmoduleConfigurations: false,
-        //                 extensions: [[$class: 'LocalBranch']],
-        //                 submoduleCfg: [],
-        //                 userRemoteConfigs: [[
-        //                 url: 'https://github.com/cyprientemateu/cyprien-ecommerce-project.git',
-        //                 // credentialsId: 'github-auth'
-        //                 ]]
-        //             ])
-        //         }
-        //     }
-        // }
+        stage ('Checkout') {
+            steps {
+                dir("${WORKSPACE}/cyprien-ecommerce-project") {
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: "*/${params.BRANCH_NAME}"]],
+                        doGenerateSubmoduleConfigurations: false,
+                        extensions: [[$class: 'LocalBranch']],
+                        submoduleCfg: [],
+                        userRemoteConfigs: [[
+                        url: 'https://github.com/cyprientemateu/cyprien-ecommerce-project.git',
+                        credentialsId: 'tcc-github-access'
+                        ]]
+                    ])
+                }
+            }
+        }
         stage('Open sonar-project.properties') {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself") {
