@@ -47,7 +47,7 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src") {
                     script {
-                        withSonarQubeEnv('SonarScanner') {
+                        withSonarQubeEnv('Sonar') {
                             sh "${scannerHome}/bin/sonar-scanner"
                         }
                     }
