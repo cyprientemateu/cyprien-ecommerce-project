@@ -140,14 +140,37 @@ pipeline {
     }
 
     post {
-        always {
-            echo 'Pipeline finished.'
-        }
         success {
-            echo 'Pipeline succeeded!'
+            slackSend color: '#2EB67D',
+            channel: 'tcc-lab', 
+            message: "*tcc-weather-app Project Build Status*" +
+            "\n Project Name: tcc-weather-app" +
+            "\n Job Name: ${env.JOB_NAME}" +
+            "\n Build number: ${currentBuild.displayName}" +
+            "\n Build Status : *SUCCESS*" +
+            "\n Build url : ${env.BUILD_URL}"
         }
         failure {
-            echo 'Pipeline failed!'
+            slackSend color: '#E01E5A',
+            channel: 'tcc-lab',  
+            message: "*tcc-weather-app Project Build Status*" +
+            "\n Project Name: tcc-weather-app" +
+            "\n Job Name: ${env.JOB_NAME}" +
+            "\n Build number: ${currentBuild.displayName}" +
+            "\n Build Status : *FAILED*" +
+            "\n Action : Please check the console output to fix this job IMMEDIATELY" +
+            "\n Build url : ${env.BUILD_URL}"
         }
+        unstable {
+            slackSend color: '#ECB22E',
+            channel: 'tcc-lab', 
+            message: "*tcc-weather-app Project Build Status*" +
+            "\n Project Name: tcc-weather-app" +
+            "\n Job Name: ${env.JOB_NAME}" +
+            "\n Build number: ${currentBuild.displayName}" +
+            "\n Build Status : *UNSTABLE*" +
+            "\n Action : Please check the console output to fix this job IMMEDIATELY" +
+            "\n Build url : ${env.BUILD_URL}"
+        }   
     }
 }
