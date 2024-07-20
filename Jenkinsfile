@@ -115,19 +115,6 @@ pipeline {
             }
         }
 
-        // stage('SonarQube Scan') {
-        //     // agent any // Run on any available agent
-
-        //     steps {
-        //         script {
-        //             def scannerHome = tool name: 'SonarQubeScanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
-        //             withSonarQubeEnv('SonarQube Server') {
-        //                 sh "${scannerHome}/bin/sonar-scanner"
-        //             }
-        //         }
-        //     }
-        // }
-
         stage('Test') {
             steps {
                 sh '''
