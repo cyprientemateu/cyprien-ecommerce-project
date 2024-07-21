@@ -130,8 +130,8 @@ pipeline {
         success {
             slackSend color: '#2EB67D',
             channel: 'tcc-lab', 
-            message: "*tcc-weather-app Project Build Status*" +
-            "\n Project Name: tcc-weather-app" +
+            message: "*do-it-yourself Project Build Status*" +
+            "\n Project Name: do-it-yourself" +
             "\n Job Name: ${env.JOB_NAME}" +
             "\n Build number: ${currentBuild.displayName}" +
             "\n Build Status : *SUCCESS*" +
@@ -140,8 +140,8 @@ pipeline {
         failure {
             slackSend color: '#E01E5A',
             channel: 'tcc-lab',  
-            message: "*tcc-weather-app Project Build Status*" +
-            "\n Project Name: tcc-weather-app" +
+            message: "*do-it-yourself Project Build Status*" +
+            "\n Project Name: do-it-yourself" +
             "\n Job Name: ${env.JOB_NAME}" +
             "\n Build number: ${currentBuild.displayName}" +
             "\n Build Status : *FAILED*" +
@@ -151,8 +151,8 @@ pipeline {
         unstable {
             slackSend color: '#ECB22E',
             channel: 'tcc-lab', 
-            message: "*tcc-weather-app Project Build Status*" +
-            "\n Project Name: tcc-weather-app" +
+            message: "*do-it-yourself Project Build Status*" +
+            "\n Project Name: do-it-yourself" +
             "\n Job Name: ${env.JOB_NAME}" +
             "\n Build number: ${currentBuild.displayName}" +
             "\n Build Status : *UNSTABLE*" +
