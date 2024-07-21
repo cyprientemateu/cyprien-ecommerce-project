@@ -113,7 +113,7 @@ pipeline {
                 }  
             }
         }
-        stage('Docker build cart') {
+        stage('Docker build assets') {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/assets"){
                     sh '''
