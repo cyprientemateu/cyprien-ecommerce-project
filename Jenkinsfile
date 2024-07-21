@@ -129,8 +129,8 @@ pipeline {
     post {
         success {
             slackSend color: '#2EB67D',
-            channel: 'tcc-lab', 
-            message: "*do-it-yourself Project Build Status*" +
+            channel: 'development-alerts', 
+            message: "*a1cyprien-do-it-yourself Project Build Status*" +
             "\n Project Name: do-it-yourself" +
             "\n Job Name: ${env.JOB_NAME}" +
             "\n Build number: ${currentBuild.displayName}" +
@@ -139,8 +139,8 @@ pipeline {
         }
         failure {
             slackSend color: '#E01E5A',
-            channel: 'tcc-lab',  
-            message: "*do-it-yourself Project Build Status*" +
+            channel: 'development-alerts',  
+            message: "*a1cyprien-do-it-yourself Project Build Status*" +
             "\n Project Name: do-it-yourself" +
             "\n Job Name: ${env.JOB_NAME}" +
             "\n Build number: ${currentBuild.displayName}" +
@@ -150,8 +150,8 @@ pipeline {
         }
         unstable {
             slackSend color: '#ECB22E',
-            channel: 'tcc-lab', 
-            message: "*do-it-yourself Project Build Status*" +
+            channel: 'development-alerts', 
+            message: "*a1cyprien-do-it-yourself Project Build Status*" +
             "\n Project Name: do-it-yourself" +
             "\n Job Name: ${env.JOB_NAME}" +
             "\n Build number: ${currentBuild.displayName}" +
