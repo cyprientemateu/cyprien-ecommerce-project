@@ -67,7 +67,7 @@ pipeline {
         } 
         stage('Docker build checkout') {
             steps {
-                dir('do-it-yourself/src/checkout'){
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/checkout"){
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout:${BUILD_NUMBER} .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout-db:${BUILD_NUMBER} . -f Dockerfile-db
