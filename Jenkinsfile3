@@ -49,7 +49,7 @@ pipeline {
             }
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project"){
-                    sh 'ls -l /cyprien-ecommerce-project/sonar-project.properties1'
+                    sh 'ls -l /cyprien-ecommerce-project/sonar-project.properties'
                     withSonarQubeEnv('Sonar') {
                         sh "${scannerHome}/bin/sonar-scanner -Dproject.settings=/cyprien-ecommerce-project/sonar-project.properties1"
                     }
