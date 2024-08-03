@@ -2,7 +2,7 @@ pipeline {
     agent any
      
     options {
-        buildDiscarder(logRotator(numToKeepStr: '5'))
+        buildDiscarder(logRotator(numToKeepStr: '2'))
         skipDefaultCheckout(true)
         disableConcurrentBuilds()
         timeout(time: 20, unit: 'MINUTES')
@@ -49,7 +49,7 @@ pipeline {
             }
             steps {
                 withSonarQubeEnv('Sonar') {
-                    sh "${scannerHome}/bin/sonar-scanner -Dproject.settings=/cyprien-ecommerce-project/sonar-project.properties1"
+                    sh "${scannerHome}/bin/sonar-scanner"
                 }
             }
         }
