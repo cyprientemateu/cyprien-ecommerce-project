@@ -1,8 +1,0 @@
-sonar.host.url=https://sonarqube.devopseasylearning.uk/
-sonar.projectKey=a1cyprien-do-it-yourself
-sonar.projectName=a1cyprien-do-it-yourself
-sonar.projectVersion=1.0
-sonar.sources=./do-it-yourself
-qualitygate.wait=true
-sonar.sourceEncoding=UTF-8
-sonar.java.binaries=do-it-yourself/src/

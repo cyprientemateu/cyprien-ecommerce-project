@@ -10,7 +10,7 @@ pipeline {
     }
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: 'main', description: '')
-        string(name: 'SONAR_VERSION', defaultValue: '5.0.1.3006', description: '')
+        string(name: 'SONAR_VERSION', defaultValue: '5.0.1', description: '')
     }
     environment {
         DOCKER_CREDENTIALS_ID = 'tcc-docker-hub'
@@ -37,115 +37,169 @@ pipeline {
                 }
             }
         }
-        stage('SonarQube analysis') {
-            agent {
-                docker {
-                    image 'sonarsource/sonar-scanner-cli:5.0.1'
-                }
-            }
-            environment {
-                CI = 'true'
-                scannerHome = '/opt/sonar-scanner'
-            }
-            steps {
-                withSonarQubeEnv('Sonar') {
-                    sh "${scannerHome}/bin/sonar-scanner"
-                }
-            }
-        }
-        // stage('Docker Login') {
-        //     steps {
-        //         withCredentials([usernamePassword(credentialsId: 'tcc-docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
-        //             sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin'
+        // stage('SonarQube analysis') {
+        //     agent {
+        //         docker {
+        //             image 'sonarsource/sonar-scanner-cli:5.0.1'
         //         }
         //     }
-        // } 
-
-        // stage('Docker build ui') {
-        //     steps {
-        //         dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/ui"){
-        //             sh '''
-        //             docker build -t cyprientemateu/a1cyprien-do-it-yourself-ui:${BUILD_NUMBER} .
-        //             '''
-        //         }  
+        //     environment {
+        //         CI = 'true'
+        //         scannerHome = '/opt/sonar-scanner'
         //     }
-        // } 
-
-        // stage('Docker build catalog') {
         //     steps {
-        //         dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/catalog"){
-        //             sh '''
-        //             docker build -t cyprientemateu/a1cyprien-do-it-yourself-catalog:${BUILD_NUMBER} .
-        //             docker build -t cyprientemateu/a1cyprien-do-it-yourself-catalog-db:${BUILD_NUMBER} . -f Dockerfile-db
-        //             '''
-        //         }  
-        //     }
-        // } 
-        // stage('Docker build checkout') {
-        //     steps {
-        //         dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/checkout"){
-        //             sh '''
-        //             docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout:${BUILD_NUMBER} .
-        //             docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout-db:${BUILD_NUMBER} . -f Dockerfile-db
-        //             '''
-        //         }  
-        //     }
-        // } 
-
-        // stage('Docker build orders') {
-        //     steps {
-        //         dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/orders"){
-        //             sh '''
-        //             docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders:${BUILD_NUMBER} .
-        //             docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db:${BUILD_NUMBER} . -f Dockerfile-db
-        //             '''
-        //         }  
-        //     }
-        // } 
-
-        // stage('Docker build cart') {
-        //     steps {
-        //         dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/cart"){
-        //             sh '''
-        //             docker build -t cyprientemateu/a1cyprien-do-it-yourself-cart:${BUILD_NUMBER} .
-        //             docker build -t cyprientemateu/a1cyprien-do-it-yourself-cart-dynamo-db:${BUILD_NUMBER} . -f Dockerfile-dynamodb
-        //             '''
-        //         }  
-        //     }
-        // }
-        // stage('Docker build assets') {
-        //     steps {
-        //         dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/assets"){
-        //             sh '''
-        //             docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets:${BUILD_NUMBER} .
-        //             docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets-rabbitmq:${BUILD_NUMBER} . -f Dockerfile-rabbitmq
-        //             '''
-        //         }  
-        //     }
-        // }
-
-        // stage('Docker Push') {
-        //     steps {
-        //         script {
-        //             def images = [
-        //                 'a1cyprien-do-it-yourself-ui',
-        //                 'a1cyprien-do-it-yourself-catalog',
-        //                 'a1cyprien-do-it-yourself-catalog-db',
-        //                 'a1cyprien-do-it-yourself-checkout',
-        //                 'a1cyprien-do-it-yourself-checkout-db',
-        //                 'a1cyprien-do-it-yourself-orders',
-        //                 'a1cyprien-do-it-yourself-orders-db',
-        //                 'a1cyprien-do-it-yourself-cart',
-        //                 'a1cyprien-do-it-yourself-cart-dynamo-db',
-        //                 'a1cyprien-do-it-yourself-assets',
-        //                 'a1cyprien-do-it-yourself-assets-rabbitmq'
-        //             ]
-        //             images.each { image ->
-        //                 sh "docker push cyprientemateu/${image}:${BUILD_NUMBER}"
+        //         dir("${WORKSPACE}/cyprien-ecommerce-project"){
+        //             withSonarQubeEnv('Sonar') {
+        //                 sh "${scannerHome}/bin/sonar-scanner"
         //             }
         //         }
         //     }
-        // } 
+        // }
+    
+        stage('Docker Login') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'tcc-docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin'
+                }
+            }
+        } 
+
+        stage('Docker build ui') {
+            steps {
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/ui"){
+                    sh '''
+                    TAG=$(git rev-parse --short=6 HEAD)
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-ui:${TAG} .
+                    '''
+                }  
+            }
+        } 
+
+        stage('Docker build catalog') {
+            steps {
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/catalog"){
+                    sh '''
+                    TAG=$(git rev-parse --short=6 HEAD)
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-catalog:${TAG} .
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-catalog-db:${TAG} . -f Dockerfile-db
+                    '''
+                }  
+            }
+        } 
+        stage('Docker build checkout') {
+            steps {
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/checkout"){
+                    sh '''
+                    TAG=$(git rev-parse --short=6 HEAD)
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout:${TAG} .
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout-db:${TAG} . -f Dockerfile-db
+                    '''
+                }  
+            }
+        } 
+
+        stage('Docker build orders') {
+            steps {
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/orders"){
+                    sh '''
+                    TAG=$(git rev-parse --short=6 HEAD)
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders:${TAG} .
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db:${TAG} . -f Dockerfile-db
+                    '''
+                }  
+            }
+        } 
+
+        stage('Docker build cart') {
+            steps {
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/cart"){
+                    sh '''
+                    TAG=$(git rev-parse --short=6 HEAD)
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-cart:${TAG} .
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-cart-dynamo-db:${TAG} . -f Dockerfile-dynamodb
+                    '''
+                }  
+            }
+        }
+        stage('Docker build assets') {
+            steps {
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/assets"){
+                    sh '''
+                    TAG=$(git rev-parse --short=6 HEAD)
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets:${TAG} .
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets-rabbitmq:${TAG} . -f Dockerfile-rabbitmq
+                    '''
+                }  
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                script {
+                     // Set TAG variable
+                    def tag = sh(script: 'git rev-parse --short=6 HEAD', returnStdout: true).trim()
+                    env.TAG = tag
+
+                    def images = [
+                        'a1cyprien-do-it-yourself-ui',
+                        'a1cyprien-do-it-yourself-catalog',
+                        'a1cyprien-do-it-yourself-catalog-db',
+                        'a1cyprien-do-it-yourself-checkout',
+                        'a1cyprien-do-it-yourself-checkout-db',
+                        'a1cyprien-do-it-yourself-orders',
+                        'a1cyprien-do-it-yourself-orders-db',
+                        'a1cyprien-do-it-yourself-cart',
+                        'a1cyprien-do-it-yourself-cart-dynamo-db',
+                        'a1cyprien-do-it-yourself-assets',
+                        'a1cyprien-do-it-yourself-assets-rabbitmq'
+                    ]
+                    images.each { image ->
+                        sh "docker push cyprientemateu/${image}:${TAG}"
+                    }
+                }
+            }
+        }
+        stage('trigger-deployment') {
+            agent { 
+                label 'deploy' 
+            }
+            when { 
+                expression { 
+                    env.GIT_BRANCH == 'origin/main' 
+                }
+            }
+            steps {
+                sh '''
+                    TAG=$(git rev-parse --short=6 HEAD)
+                    rm -rf cyprien-ecommerce-project-automation || true
+                    git clone https://github.com/cyprientemateu/cyprien-ecommerce-project-automation.git 
+                    cd cyprien-ecommerce-project-automation/chart
+
+                    yq eval '.catalog.tag = "'"$TAG"'"' -i dev-values.yaml
+                    yq eval '.orders_db.tag = "'"$TAG"'"' -i dev-values.yaml
+                    yq eval '.catalog_db.tag = "'"$TAG"'"' -i dev-values.yaml
+                    yq eval '.cart.tag = "'"$TAG"'"' -i dev-values.yaml
+                    yq eval '.cart_dynamodb.tag = "'"$TAG"'"' -i dev-values.yaml
+                    yq eval '.orders.tag = "'"$TAG"'"' -i dev-values.yaml
+                    yq eval '.orders_db_rabbitmq.tag = "'"$TAG"'"' -i dev-values.yaml
+                    yq eval '.checkout.tag = "'"$TAG"'"' -i dev-values.yaml
+                    yq eval '.checkout_db.tag = "'"$TAG"'"' -i dev-values.yaml
+                    yq eval '.assets.tag = "'"$TAG"'"' -i dev-values.yaml
+                    yq eval '.ui.tag = "'"$TAG"'"' -i dev-values.yaml
+                    
+                    git config --global user.name "cyprientemateu"
+                    git config --global user.email cyprien.temateu@yahoo.com
+                    
+                    git add -A
+                    if git diff-index --quiet HEAD; then
+                        echo "No changes to commit"
+                    else
+                        git commit -m "updating tags to ${TAG}"
+                        git push origin main
+                    fi
+                '''
+            }
+        } 
     }
     post {
         success {
