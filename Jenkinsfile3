@@ -139,7 +139,7 @@ pipeline {
                     //  // Set TAG variable
                     // def tag = sh(script: 'git rev-parse --short=6 HEAD', returnStdout: true).trim()
                     // env.TAG = tag
-
+                    TAG=$(git rev-parse --short=6 HEAD)
                     def images = [
                         'a1cyprien-do-it-yourself-ui',
                         'a1cyprien-do-it-yourself-catalog',
