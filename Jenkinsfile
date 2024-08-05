@@ -3,7 +3,7 @@ pipeline {
      
     options {
         buildDiscarder(logRotator(numToKeepStr: '3'))
-        skipDefaultCheckout(true)
+        skipDefaultCheckout()
         disableConcurrentBuilds()
         timeout(time: 20, unit: 'MINUTES')
         timestamps()
@@ -14,7 +14,6 @@ pipeline {
     }
 
     stages {
-
         stage ('Checkout') {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project") {
