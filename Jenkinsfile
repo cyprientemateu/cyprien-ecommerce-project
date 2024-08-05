@@ -50,7 +50,7 @@ pipeline {
             }
             steps {
                 sh '''
-                cd do-it-yourself/src/catalog/
+                cd /cyprien-ecommerce-project/do-it-yourself/src/catalog/
                 ls -la                                                 
                 uname -r
                 go test
