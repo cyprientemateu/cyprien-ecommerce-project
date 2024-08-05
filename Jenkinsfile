@@ -8,6 +8,11 @@ pipeline {
         timeout(time: 20, unit: 'MINUTES')
         timestamps()
     }
+
+    parameters {
+        string(name: 'BRANCH_NAME', defaultValue: 'main', description: '')
+        string(name: 'SONAR_VERSION', defaultValue: '5.0.1', description: '')
+    }
     
     triggers {
         githubPush()
