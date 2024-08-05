@@ -253,6 +253,9 @@ pipeline {
             "\n Build Status : *UNSTABLE*" +
             "\n Action : Please check the console output to fix this job IMMEDIATELY" +
             "\n Build url : ${env.BUILD_URL}"
+        }
+        cleanup {
+            deleteDir()
         }   
     }   
 }
