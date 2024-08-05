@@ -2,24 +2,19 @@ pipeline {
     agent any
      
     options {
-        buildDiscarder(logRotator(numToKeepStr: '5'))
+        buildDiscarder(logRotator(numToKeepStr: '3'))
         skipDefaultCheckout(true)
         disableConcurrentBuilds()
         timeout(time: 20, unit: 'MINUTES')
         timestamps()
     }
-    parameters {
-        string(name: 'BRANCH_NAME', defaultValue: 'main', description: '')
-        string(name: 'SONAR_VERSION', defaultValue: '5.0.1', description: '')
-    }
-    environment {
-        DOCKER_CREDENTIALS_ID = 'tcc-docker-hub'
-    }    
     
     triggers {
         githubPush()
     }
+
     stages {
+
         stage ('Checkout') {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project") {
@@ -37,6 +32,101 @@ pipeline {
                 }
             }
         }
+        
+        stage('Scan Golang Code') {
+            agent {
+                docker {
+                    image 'golang:1.22.5'
+                    args '-u root' // Run the container as the root user
+                }
+            }
+            steps {
+                sh '''
+                cd do-it-yourself/src/catalog/
+                ls -la                                                 
+                uname -r
+                go test
+                '''
+            }
+        }
+        
+        stage('Unit Test UI Code') {
+            agent {
+                docker {
+                    image 'maven:3.8.5-openjdk-17'
+                    args '-u root -v /var/run/docker.sock:/var/run/docker.sock' // Mount Docker socket
+                }
+            }
+            environment {
+                DOCKER_HOST = 'unix:///var/run/docker.sock' // Set Docker host
+            }
+            steps {
+                sh '''
+                cd do-it-yourself/src/ui
+                mvn test
+                '''
+            }
+        }
+
+        stage('Unit Test Cart Code') {
+            agent {
+                docker {
+                    image 'maven:3.8.5-openjdk-17'
+                    args '-u root -v /var/run/docker.sock:/var/run/docker.sock' // Mount Docker socket
+                }
+            }
+            
+            steps {
+                sh '''
+                cd do-it-yourself/src/cart
+                mvn test -DskipTests=true
+                '''
+            }
+        }
+
+        stage('Unit Test Orders Code') {
+            agent {
+                docker {
+                    image 'maven:3.8.5-openjdk-17'
+                    args '-u root' // Run the container as the root user
+                }
+            }
+            steps {
+                sh '''
+                cd do-it-yourself/src/orders
+                mvn test -DskipTests=true
+                '''
+            }
+        }
+        
+        stage('Scan Checkout Code') {
+            agent {
+                docker {
+                    image 'node:14' // Use a Node.js Docker image
+                    args '-u root' // Run the container as the root user
+                }
+            }
+            steps {
+                sh '''
+                cd do-it-yourself/src/checkout
+                ls -la
+                node --version
+                npm --version
+                # Add other scanning or commands as needed
+                '''
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh '''
+                ls
+                pwd
+                whoami
+                '''
+            }
+        }
+
         stage('SonarQube analysis') {
             agent {
                 docker {
@@ -48,14 +138,12 @@ pipeline {
                 scannerHome = '/opt/sonar-scanner'
             }
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project"){
-                    withSonarQubeEnv('Sonar') {
-                        sh "${scannerHome}/bin/sonar-scanner"
-                    }
+                withSonarQubeEnv('Sonar') {
+                    sh "${scannerHome}/bin/sonar-scanner"
                 }
             }
         }
-    
+
         stage('Docker Login') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'tcc-docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
@@ -148,8 +236,7 @@ pipeline {
                             sh "docker push cyprientemateu/${image}:${BUILD_NUMBER}"
                         }
                     }
-                }
-                
+                }   
             }
         } 
     }
@@ -186,6 +273,5 @@ pipeline {
             "\n Action : Please check the console output to fix this job IMMEDIATELY" +
             "\n Build url : ${env.BUILD_URL}"
         }   
-    }        
+    }   
 }
-    
