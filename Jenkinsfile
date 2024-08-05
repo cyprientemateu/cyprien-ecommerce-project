@@ -1,6 +1,6 @@
 pipeline {
     agent any
-     
+
     options {
         buildDiscarder(logRotator(numToKeepStr: '3'))
         skipDefaultCheckout(true)
@@ -16,14 +16,14 @@ pipeline {
 
     environment {
         DOCKER_CREDENTIALS_ID = 'tcc-docker-hub'
-    }    
-    
+    }
+
     triggers {
         githubPush()
     }
 
     stages {
-        stage ('Checkout') {
+        stage('Checkout') {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project") {
                     checkout([
@@ -33,14 +33,14 @@ pipeline {
                         extensions: [[$class: 'LocalBranch']],
                         submoduleCfg: [],
                         userRemoteConfigs: [[
-                        url: 'https://github.com/cyprientemateu/cyprien-ecommerce-project.git',
-                        credentialsId: 'tcc-github-access'
+                            url: 'https://github.com/cyprientemateu/cyprien-ecommerce-project.git',
+                            credentialsId: 'tcc-github-access'
                         ]]
                     ])
                 }
             }
         }
-        
+
         stage('Scan Golang Code') {
             agent {
                 docker {
@@ -49,17 +49,17 @@ pipeline {
                 }
             }
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/catalog/")
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/catalog") {
                     sh '''
                     cd /cyprien-ecommerce-project/do-it-yourself/src/catalog/
                     ls -la                                                 
                     uname -r
                     go test
                     '''
-                }    
+                }
             }
         }
-        
+
         stage('Unit Test UI Code') {
             agent {
                 docker {
@@ -85,7 +85,6 @@ pipeline {
                     args '-u root -v /var/run/docker.sock:/var/run/docker.sock' // Mount Docker socket
                 }
             }
-            
             steps {
                 sh '''
                 cd do-it-yourself/src/cart
@@ -108,7 +107,7 @@ pipeline {
                 '''
             }
         }
-        
+
         stage('Scan Checkout Code') {
             agent {
                 docker {
@@ -160,75 +159,78 @@ pipeline {
                     sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin'
                 }
             }
-        } 
+        }
 
         stage('Docker build ui') {
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/ui"){
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/ui") {
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-ui:${BUILD_NUMBER} .
                     '''
-                }  
+                }
             }
-        } 
+        }
 
         stage('Docker build catalog') {
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/catalog"){
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/catalog") {
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-catalog:${BUILD_NUMBER} .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-catalog-db:${BUILD_NUMBER} . -f Dockerfile-db
                     '''
-                }  
+                }
             }
-        } 
+        }
+
         stage('Docker build checkout') {
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/checkout"){
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/checkout") {
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout:${BUILD_NUMBER} .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout-db:${BUILD_NUMBER} . -f Dockerfile-db
                     '''
-                }  
+                }
             }
-        } 
+        }
 
         stage('Docker build orders') {
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/orders"){
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/orders") {
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders:${BUILD_NUMBER} .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db:${BUILD_NUMBER} . -f Dockerfile-db
                     '''
-                }  
+                }
             }
-        } 
+        }
 
         stage('Docker build cart') {
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/cart"){
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/cart") {
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-cart:${BUILD_NUMBER} .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-cart-dynamo-db:${BUILD_NUMBER} . -f Dockerfile-dynamodb
                     '''
-                }  
+                }
             }
         }
+
         stage('Docker build assets') {
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/assets"){
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/assets") {
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets:${BUILD_NUMBER} .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets-rabbitmq:${BUILD_NUMBER} . -f Dockerfile-rabbitmq
                     '''
-                }  
+                }
             }
-        } 
+        }
     }
+
     post {
         success {
             slackSend color: '#2EB67D',
-            channel: 'development-alerts', 
+            channel: 'development-alerts',
             message: "*a1cyprien-do-it-yourself Project Build Status*" +
             "\n Project Name: do-it-yourself" +
             "\n Job Name: ${env.JOB_NAME}" +
@@ -238,7 +240,7 @@ pipeline {
         }
         failure {
             slackSend color: '#E01E5A',
-            channel: 'development-alerts',  
+            channel: 'development-alerts',
             message: "*a1cyprien-do-it-yourself Project Build Status*" +
             "\n Project Name: do-it-yourself" +
             "\n Job Name: ${env.JOB_NAME}" +
@@ -249,7 +251,7 @@ pipeline {
         }
         unstable {
             slackSend color: '#ECB22E',
-            channel: 'development-alerts', 
+            channel: 'development-alerts',
             message: "*a1cyprien-do-it-yourself Project Build Status*" +
             "\n Project Name: do-it-yourself" +
             "\n Job Name: ${env.JOB_NAME}" +
@@ -257,6 +259,6 @@ pipeline {
             "\n Build Status : *UNSTABLE*" +
             "\n Action : Please check the console output to fix this job IMMEDIATELY" +
             "\n Build url : ${env.BUILD_URL}"
-        }   
-    }   
+        }
+    }
 }
