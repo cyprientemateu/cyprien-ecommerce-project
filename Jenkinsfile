@@ -21,7 +21,7 @@ pipeline {
                         $class: 'GitSCM',
                         branches: [[name: "*/${params.BRANCH_NAME}"]],
                         doGenerateSubmoduleConfigurations: false,
-                        extensions: [[$class: 'LocalBranch']],
+                        extensions: [[$class: 'main']],
                         submoduleCfg: [],
                         userRemoteConfigs: [[
                         url: 'https://github.com/cyprientemateu/cyprien-ecommerce-project.git',
