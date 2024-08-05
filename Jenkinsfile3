@@ -136,25 +136,27 @@ pipeline {
         stage('Docker Push') {
             steps {
                 script {
-                     // Set TAG variable
-                    def tag = sh(script: 'git rev-parse --short=6 HEAD', returnStdout: true).trim()
-                    env.TAG = tag
-                    // TAG=$(git rev-parse --short=6 HEAD)
-                    def images = [
-                        'a1cyprien-do-it-yourself-ui',
-                        'a1cyprien-do-it-yourself-catalog',
-                        'a1cyprien-do-it-yourself-catalog-db',
-                        'a1cyprien-do-it-yourself-checkout',
-                        'a1cyprien-do-it-yourself-checkout-db',
-                        'a1cyprien-do-it-yourself-orders',
-                        'a1cyprien-do-it-yourself-orders-db',
-                        'a1cyprien-do-it-yourself-cart',
-                        'a1cyprien-do-it-yourself-cart-dynamo-db',
-                        'a1cyprien-do-it-yourself-assets',
-                        'a1cyprien-do-it-yourself-assets-rabbitmq'
-                    ]
-                    images.each { image ->
-                        sh "docker push cyprientemateu/${image}:${TAG}"
+                    dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/assets"){
+                        // Set TAG variable
+                        def tag = sh(script: 'git rev-parse --short=6 HEAD', returnStdout: true).trim()
+                        env.TAG = tag
+                        // TAG=$(git rev-parse --short=6 HEAD)
+                        def images = [
+                            'a1cyprien-do-it-yourself-ui',
+                            'a1cyprien-do-it-yourself-catalog',
+                            'a1cyprien-do-it-yourself-catalog-db',
+                            'a1cyprien-do-it-yourself-checkout',
+                            'a1cyprien-do-it-yourself-checkout-db',
+                            'a1cyprien-do-it-yourself-orders',
+                            'a1cyprien-do-it-yourself-orders-db',
+                            'a1cyprien-do-it-yourself-cart',
+                            'a1cyprien-do-it-yourself-cart-dynamo-db',
+                            'a1cyprien-do-it-yourself-assets',
+                            'a1cyprien-do-it-yourself-assets-rabbitmq'
+                        ]
+                        images.each { image ->
+                            sh "docker push cyprientemateu/${image}:${TAG}"
+                        }
                     }
                 }
             }
