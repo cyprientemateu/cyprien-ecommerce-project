@@ -97,14 +97,14 @@ pipeline {
         }
 
         stage('trigger-deployment') {
-            agent { 
-                label 'deploy' 
-            }
-            when { 
-                expression { 
-                    params.GIT_BRANCH == 'origin/main' 
-                }
-            }
+            // agent { 
+            //     label 'deploy' 
+            // }
+            // when { 
+            //     expression { 
+            //         params.GIT_BRANCH == 'origin/main' 
+            //     }
+            // }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'tcc-github-access', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
                     sh '''
