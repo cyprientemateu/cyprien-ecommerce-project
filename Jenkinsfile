@@ -14,30 +14,30 @@ pipeline {
     //     string(name: 'SONAR_VERSION', defaultValue: '5.0.1', description: '')
     // }
 
-    // environment {
-    //     DOCKER_CREDENTIALS_ID = 'tcc-docker-hub'
-    // }    
+    environment {
+        DOCKER_CREDENTIALS_ID = 'tcc-docker-hub'
+    }    
     
     triggers {
         githubPush()
     }
 
     stages {
-        // stage ('Checkout') {
-        //     steps {
-        //         checkout([
-        //             $class: 'GitSCM',
-        //             branches: [[name: "*/${params.BRANCH_NAME}"]],
-        //             doGenerateSubmoduleConfigurations: false,
-        //             extensions: [[$class: 'LocalBranch']],
-        //             submoduleCfg: [],
-        //             userRemoteConfigs: [[
-        //             url: 'https://github.com/cyprientemateu/cyprien-ecommerce-project.git',
-        //             credentialsId: 'tcc-github-access'
-        //             ]]
-        //         ])
-        //     }
-        // }
+        stage ('Checkout') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: "*/${params.BRANCH_NAME}"]],
+                    doGenerateSubmoduleConfigurations: false,
+                    extensions: [[$class: 'LocalBranch']],
+                    submoduleCfg: [],
+                    userRemoteConfigs: [[
+                    url: 'https://github.com/cyprientemateu/cyprien-ecommerce-project.git',
+                    credentialsId: 'tcc-github-access'
+                    ]]
+                ])
+            }
+        }
         
         stage('Scan Golang Code') {
             agent {
@@ -48,7 +48,7 @@ pipeline {
             }
             steps {
                 sh '''
-                cd /cyprien-ecommerce-project/do-it-yourself/src/catalog/
+                cd do-it-yourself/src/catalog/
                 ls -la                                                 
                 uname -r
                 go test
