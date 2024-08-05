@@ -3,16 +3,11 @@ pipeline {
      
     options {
         buildDiscarder(logRotator(numToKeepStr: '3'))
-        skipDefaultCheckout()
+        skipDefaultCheckout(true)
         disableConcurrentBuilds()
         timeout(time: 20, unit: 'MINUTES')
         timestamps()
     }
-
-    // parameters {
-    //     string(name: 'BRANCH_NAME', defaultValue: 'main', description: '')
-    //     string(name: 'SONAR_VERSION', defaultValue: '5.0.1', description: '')
-    // }
 
     environment {
         DOCKER_CREDENTIALS_ID = 'tcc-docker-hub'
@@ -23,22 +18,6 @@ pipeline {
     }
 
     stages {
-        // stage ('Checkout') {
-        //     steps {
-        //         checkout([
-        //             $class: 'GitSCM',
-        //             branches: [[name: "*/${params.BRANCH_NAME}"]],
-        //             doGenerateSubmoduleConfigurations: false,
-        //             extensions: [[$class: 'LocalBranch']],
-        //             submoduleCfg: [],
-        //             userRemoteConfigs: [[
-        //             url: 'https://github.com/cyprientemateu/cyprien-ecommerce-project.git',
-        //             credentialsId: 'tcc-github-access'
-        //             ]]
-        //         ])
-        //     }
-        // }
-        
         stage('Scan Golang Code') {
             agent {
                 docker {
