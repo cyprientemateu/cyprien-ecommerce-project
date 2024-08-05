@@ -51,7 +51,6 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/catalog") {
                     sh '''
-                    cd /cyprien-ecommerce-project/do-it-yourself/src/catalog/
                     ls -la                                                 
                     uname -r
                     go test
