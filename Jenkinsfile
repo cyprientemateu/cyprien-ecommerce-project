@@ -3,7 +3,7 @@ pipeline {
      
     options {
         buildDiscarder(logRotator(numToKeepStr: '3'))
-        skipDefaultCheckout()
+        // skipDefaultCheckout()
         disableConcurrentBuilds()
         timeout(time: 20, unit: 'MINUTES')
         timestamps()
@@ -21,7 +21,7 @@ pipeline {
                         $class: 'GitSCM',
                         branches: [[name: "*/${params.BRANCH_NAME}"]],
                         doGenerateSubmoduleConfigurations: false,
-                        extensions: [[$class: 'main']],
+                        extensions: [[$class: 'LocalBranch']],
                         submoduleCfg: [],
                         userRemoteConfigs: [[
                         url: 'https://github.com/cyprientemateu/cyprien-ecommerce-project.git',
