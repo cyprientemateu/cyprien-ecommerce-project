@@ -20,41 +20,41 @@ pipeline {
         githubPush()
     }
     stages {
-        stage ('Checkout') {
-            steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project") {
-                    checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: "*/${params.BRANCH_NAME}"]],
-                        doGenerateSubmoduleConfigurations: false,
-                        extensions: [[$class: 'LocalBranch']],
-                        submoduleCfg: [],
-                        userRemoteConfigs: [[
-                        url: 'https://github.com/cyprientemateu/cyprien-ecommerce-project.git',
-                        credentialsId: 'tcc-github-access'
-                        ]]
-                    ])
-                }
-            }
-        }
-        // stage('SonarQube analysis') {
-        //     agent {
-        //         docker {
-        //             image 'sonarsource/sonar-scanner-cli:5.0.1'
-        //         }
-        //     }
-        //     environment {
-        //         CI = 'true'
-        //         scannerHome = '/opt/sonar-scanner'
-        //     }
+        // stage ('Checkout') {
         //     steps {
-        //         dir("${WORKSPACE}/cyprien-ecommerce-project"){
-        //             withSonarQubeEnv('Sonar') {
-        //                 sh "${scannerHome}/bin/sonar-scanner"
-        //             }
+        //         dir("${WORKSPACE}/cyprien-ecommerce-project") {
+        //             checkout([
+        //                 $class: 'GitSCM',
+        //                 branches: [[name: "*/${params.BRANCH_NAME}"]],
+        //                 doGenerateSubmoduleConfigurations: false,
+        //                 extensions: [[$class: 'LocalBranch']],
+        //                 submoduleCfg: [],
+        //                 userRemoteConfigs: [[
+        //                 url: 'https://github.com/cyprientemateu/cyprien-ecommerce-project.git',
+        //                 credentialsId: 'tcc-github-access'
+        //                 ]]
+        //             ])
         //         }
         //     }
         // }
+        stage('SonarQube analysis') {
+            agent {
+                docker {
+                    image 'sonarsource/sonar-scanner-cli:5.0.1'
+                }
+            }
+            environment {
+                CI = 'true'
+                scannerHome = '/opt/sonar-scanner'
+            }
+            steps {
+                dir("${WORKSPACE}/cyprien-ecommerce-project"){
+                    withSonarQubeEnv('Sonar') {
+                        sh "${scannerHome}/bin/sonar-scanner"
+                    }
+                }
+            }
+        }
     
         stage('Docker Login') {
             steps {
