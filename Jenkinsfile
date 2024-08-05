@@ -13,6 +13,10 @@ pipeline {
         string(name: 'BRANCH_NAME', defaultValue: 'main', description: '')
         string(name: 'SONAR_VERSION', defaultValue: '5.0.1', description: '')
     }
+
+    environment {
+        DOCKER_CREDENTIALS_ID = 'tcc-docker-hub'
+    }    
     
     triggers {
         githubPush()
