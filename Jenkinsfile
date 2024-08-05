@@ -51,6 +51,10 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/catalog") {
                     sh '''
+                    if [ ! -f go.mod ]; then
+                        echo "Error: go.mod file not found!"
+                        exit 1
+                    fi
                     ls -la                                                 
                     uname -r
                     go test
