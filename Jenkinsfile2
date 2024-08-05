@@ -51,12 +51,13 @@ pipeline {
                 }
             }
             steps {
-                sh '''
-                cd do-it-yourself/src/catalog/
-                ls -la                                                 
-                uname -r
-                go test
-                '''
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/catalog/") {
+                    sh '''
+                    ls -la                                                 
+                    uname -r
+                    go test
+                    '''
+                }    
             }
         }
         
