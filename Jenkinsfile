@@ -42,26 +42,20 @@ pipeline {
         }
 
         stage('Scan Golang Code') {
-            agent {
-                docker {
-                    image 'golang:1.22.5'
-                    args '-u root' // Run the container as the root user
-                }
-            }
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/catalog") {
-                    sh '''
-                    if [ ! -f go.mod ]; then
-                        echo "Error: go.mod file not found!"
-                        exit 1
-                    fi
-                    ls -la                                                 
-                    uname -r
-                    go test
-                    '''
+                script {
+                    docker.image('golang:1.22.5').inside {
+                        dir('cyprien-ecommerce-project/do-it-yourself/src/catalog') {
+                            if (!fileExists('go.mod')) {
+                                error 'Error: go.mod file not found!'
+                            }
+                            sh 'go test ./...'
+                        }
+                    }
                 }
             }
         }
+
 
         stage('Unit Test UI Code') {
             agent {
