@@ -136,7 +136,7 @@ pipeline {
         stage('Docker Push') {
             steps {
                 script {
-                    dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src"){
+                    dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/assets"){
                         // Set TAG variable
                         def tag = sh(script: 'git rev-parse --short=6 HEAD', returnStdout: true).trim()
                         env.TAG = tag
