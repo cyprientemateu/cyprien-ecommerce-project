@@ -108,7 +108,6 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'tcc-github-access', variable: 'GITHUB_TOKEN')]) {
                     sh '''
-                        echo $GIT_PASS | gh auth login --with-token
                         rm -rf cyprien-ecommerce-project-automation || true
                         git clone https://cyprientemateu:${GITHUB_TOKEN}@github.com/cyprientemateu/cyprien-ecommerce-project-automation.git 
                         cd cyprien-ecommerce-project-automation/chart
