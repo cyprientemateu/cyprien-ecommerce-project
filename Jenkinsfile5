@@ -96,17 +96,6 @@ pipeline {
             }
         }
 
-        stage('Install GitHub CLI') {
-            steps {
-                sh '''
-                curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-                sudo apt-add-repository https://cli.github.com/packages
-                sudo apt update
-                sudo apt install gh
-                '''
-            }
-        }
-
         stage('trigger-deployment') {
             // agent { 
             //     label 'deploy' 
@@ -117,7 +106,7 @@ pipeline {
             //     }
             // }
             steps {
-                withCredentials([usernamePassword(credentialsId: 'tcc-github-access', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                withCredentials([string(credentialsId: 'tcc-github-access', variable: 'GITHUB_TOKEN')]) {
                     sh '''
                         echo $GIT_PASS | gh auth login --with-token
                         rm -rf cyprien-ecommerce-project-automation || true
@@ -144,7 +133,7 @@ pipeline {
                             echo "No changes to commit"
                         else
                             git commit -m "updating tags to ${TAG}"
-                            git push https://github.com/${GIT_USER}/cyprien-ecommerce-project-automation.git origin main
+                            git push origin main
                         fi
                     '''
                 }
