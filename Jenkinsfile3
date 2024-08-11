@@ -37,6 +37,17 @@ pipeline {
                 }
             }
         }
+
+        stage('Test Current Directory') {
+            steps {
+                sh '''
+                ls
+                pwd
+                whoami
+                '''
+            }
+        }
+
         stage('SonarQube analysis') {
             agent {
                 docker {
