@@ -81,7 +81,7 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/ui"){
                     sh '''
-                    $TAG=$(git rev-parse --short=6 HEAD)
+                    TAG=$(git rev-parse --short=6 HEAD)
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-ui:$TAG .
                     '''
                 }  
@@ -92,7 +92,7 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/catalog"){
                     sh '''
-                    $TAG=$(git rev-parse --short=6 HEAD)
+                    TAG=$(git rev-parse --short=6 HEAD)
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-catalog:$TAG .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-catalog-db:$TAG . -f Dockerfile-db
                     '''
@@ -103,7 +103,7 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/checkout"){
                     sh '''
-                    $TAG=$(git rev-parse --short=6 HEAD)
+                    TAG=$(git rev-parse --short=6 HEAD)
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout:$TAG .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout-db:$TAG . -f Dockerfile-db
                     '''
@@ -115,7 +115,7 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/orders"){
                     sh '''
-                    $TAG=$(git rev-parse --short=6 HEAD)
+                    TAG=$(git rev-parse --short=6 HEAD)
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders:$TAG .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db:$$TAG . -f Dockerfile-db
                     '''
@@ -127,7 +127,7 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/cart"){
                     sh '''
-                    $TAG=$(git rev-parse --short=6 HEAD)
+                    TAG=$(git rev-parse --short=6 HEAD)
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-cart:$TAG .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-cart-dynamo-db:$TAG . -f Dockerfile-dynamodb
                     '''
@@ -138,7 +138,7 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/assets"){
                     sh '''
-                    $TAG=$(git rev-parse --short=6 HEAD)
+                    TAG=$(git rev-parse --short=6 HEAD)
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets:$TAG .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets-rabbitmq:$TAG . -f Dockerfile-rabbitmq
                     '''
