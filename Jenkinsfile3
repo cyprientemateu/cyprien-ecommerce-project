@@ -50,24 +50,24 @@ pipeline {
             }
         }
 
-        // s$tage('SonarQube analysis') {
-        //     agent {
-        //         docker {
-        //             image 'sonarsource/sonar-scanner-cli:5.0.1'
-        //         }
-        //     }
-        //     environment {
-        //         CI = 'true'
-        //         scannerHome = '/opt/sonar-scanner'
-        //     }
-        //     steps {
-        //         // dir("${WORKSPACE}/cyprien-ecommerce-project"){
-        //             withSonarQubeEnv('Sonar') {
-        //                 sh "${scannerHome}/bin/sonar-scanner"
-        //             }
-        //         // }
-        //     }
-        // }
+        s$tage('SonarQube analysis') {
+            agent {
+                docker {
+                    image 'sonarsource/sonar-scanner-cli:5.0.1'
+                }
+            }
+            environment {
+                CI = 'true'
+                scannerHome = '/opt/sonar-scanner'
+            }
+            steps {
+                // dir("${WORKSPACE}/cyprien-ecommerce-project"){
+                    withSonarQubeEnv('Sonar') {
+                        sh "${scannerHome}/bin/sonar-scanner"
+                    }
+                // }
+            }
+        }
     
         stage('Docker Login') {
             steps {
@@ -175,14 +175,6 @@ pipeline {
             }
         }
         stage('trigger-deployment') {
-            // agent { 
-            //     label 'deploy' 
-            // }
-            // when { 
-            //     expression { 
-            //         env.GIT_BRANCH == 'origin/main' 
-            //     }
-            // }
             steps {
                 withCredentials([string(credentialsId: 'tcc-github-access', variable: 'GITHUB_TOKEN')]) {
                     sh '''
