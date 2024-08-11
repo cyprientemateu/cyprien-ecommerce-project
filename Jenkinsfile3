@@ -43,6 +43,7 @@ pipeline {
                 sh '''
                 ls
                 rm -rf cyprien-ecommerce-project@tmp
+                ls
                 pwd
                 whoami
                 '''
