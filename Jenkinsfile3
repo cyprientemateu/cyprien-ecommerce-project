@@ -42,6 +42,7 @@ pipeline {
             steps {
                 sh '''
                 ls
+                rm -rf cyprien-ecommerce-project@tmp
                 pwd
                 whoami
                 '''
