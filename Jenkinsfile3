@@ -63,7 +63,7 @@ pipeline {
                     withSonarQubeEnv('Sonar') {
                         sh "${scannerHome}/bin/sonar-scanner"
                     }
-                }
+                // }
             }
         }
     
