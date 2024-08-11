@@ -59,7 +59,7 @@ pipeline {
                 scannerHome = '/opt/sonar-scanner'
             }
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project"){
+                // dir("${WORKSPACE}/cyprien-ecommerce-project"){
                     withSonarQubeEnv('Sonar') {
                         sh "${scannerHome}/bin/sonar-scanner"
                     }
