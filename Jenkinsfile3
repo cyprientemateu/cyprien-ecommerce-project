@@ -117,7 +117,7 @@ pipeline {
                     sh '''
                     TAG=$(git rev-parse --short=6 HEAD)
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders:$TAG .
-                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db:$$TAG . -f Dockerfile-db
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db:$TAG . -f Dockerfile-db
                     '''
                 }  
             }
@@ -151,8 +151,8 @@ pipeline {
                 script {
                     dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/"){
                         // Set $TAG variable
-                        def $tag = sh(script: 'git rev-parse --short=6 HEAD', returnStdout: true).trim()
-                        env.$TAG = $tag
+                        def tag = sh(script: 'git rev-parse --short=6 HEAD', returnStdout: true).trim()
+                        env.TAG = tag
                         // $TAG=$(git rev-parse --short=6 HEAD)
                         def images = [
                             'a1cyprien-do-it-yourself-ui',
@@ -168,7 +168,7 @@ pipeline {
                             'a1cyprien-do-it-yourself-assets-rabbitmq'
                         ]
                         images.each { image ->
-                            sh "docker push cyprientemateu/${image}:$$TAG"
+                            sh "docker push cyprientemateu/${image}:$TAG"
                         }
                     }
                 }
@@ -191,17 +191,17 @@ pipeline {
                         git clone https://cyprientemateu:${GITHUB_TOKEN}@github.com/cyprientemateu/cyprien-ecommerce-project-automation.git 
                         cd cyprien-ecommerce-project-automation/chart
 
-                        yq eval '.catalog.$tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.orders_db.$tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.catalog_db.$tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.cart.$tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.cart_dynamodb.$tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.orders.$tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.orders_db_rabbitmq.$tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.checkout.$tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.checkout_db.$tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.assets.$tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.ui.$tag = "'"$TAG"'"' -i values.yaml
+                        yq eval '.catalog.tag = "'"$TAG"'"' -i values.yaml
+                        yq eval '.orders_db.tag = "'"$TAG"'"' -i values.yaml
+                        yq eval '.catalog_db.tag = "'"$TAG"'"' -i values.yaml
+                        yq eval '.cart.tag = "'"$TAG"'"' -i values.yaml
+                        yq eval '.cart_dynamodb.tag = "'"$TAG"'"' -i values.yaml
+                        yq eval '.orders.tag = "'"$TAG"'"' -i values.yaml
+                        yq eval '.orders_db_rabbitmq.tag = "'"$TAG"'"' -i values.yaml
+                        yq eval '.checkout.tag = "'"$TAG"'"' -i values.yaml
+                        yq eval '.checkout_db.tag = "'"$TAG"'"' -i values.yaml
+                        yq eval '.assets.tag = "'"$TAG"'"' -i values.yaml
+                        yq eval '.ui.tag = "'"$TAG"'"' -i values.yaml
                         
                         git config --global user.name "cyprientemateu"
                         git config --global user.email cyprien.temateu@yahoo.com
@@ -210,7 +210,7 @@ pipeline {
                         if git diff-index --quiet HEAD; then
                             echo "No changes to commit"
                         else
-                            git commit -m "updating $tags to ${TAG}"
+                            git commit -m "updating tags to ${TAG}"
                             git push origin main
                         fi
                     '''
