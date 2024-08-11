@@ -20,7 +20,7 @@ pipeline {
         githubPush()
     }
     stages {
-        s$tage ('Checkout') {
+        stage ('Checkout') {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project") {
                     checkout([
@@ -111,7 +111,7 @@ pipeline {
             }
         } 
 
-        s$tage('Docker build orders') {
+        stage('Docker build orders') {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/orders"){
                     sh '''
