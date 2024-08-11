@@ -19,7 +19,7 @@ pipeline {
     triggers {
         githubPush()
     }
-    s$tages {
+    stages {
         s$tage ('Checkout') {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project") {
@@ -38,7 +38,7 @@ pipeline {
             }
         }
 
-        s$tage('Test Current Directory') {
+        stage('Test Current Directory') {
             steps {
                 sh '''
                 ls
@@ -69,7 +69,7 @@ pipeline {
         //     }
         // }
     
-        s$tage('Docker Login') {
+        stage('Docker Login') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'tcc-docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
                     sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin'
@@ -77,7 +77,7 @@ pipeline {
             }
         } 
 
-        s$tage('Docker build ui') {
+        stage('Docker build ui') {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/ui"){
                     sh '''
@@ -88,7 +88,7 @@ pipeline {
             }
         } 
 
-        s$tage('Docker build catalog') {
+        stage('Docker build catalog') {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/catalog"){
                     sh '''
@@ -99,7 +99,7 @@ pipeline {
                 }  
             }
         } 
-        s$tage('Docker build checkout') {
+        stage('Docker build checkout') {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/checkout"){
                     sh '''
@@ -123,7 +123,7 @@ pipeline {
             }
         } 
 
-        s$tage('Docker build cart') {
+        stage('Docker build cart') {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/cart"){
                     sh '''
@@ -134,7 +134,7 @@ pipeline {
                 }  
             }
         }
-        s$tage('Docker build assets') {
+        stage('Docker build assets') {
             steps {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/assets"){
                     sh '''
@@ -146,7 +146,7 @@ pipeline {
             }
         }
 
-        s$tage('Docker Push') {
+        stage('Docker Push') {
             steps {
                 script {
                     dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/"){
@@ -174,7 +174,7 @@ pipeline {
                 }
             }
         }
-        s$tage('trigger-deployment') {
+        stage('trigger-deployment') {
             // agent { 
             //     label 'deploy' 
             // }
