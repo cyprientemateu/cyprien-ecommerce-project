@@ -50,7 +50,7 @@ pipeline {
             }
         }
 
-        s$tage('SonarQube analysis') {
+        stage('SonarQube analysis') {
             agent {
                 docker {
                     image 'sonarsource/sonar-scanner-cli:5.0.1'
