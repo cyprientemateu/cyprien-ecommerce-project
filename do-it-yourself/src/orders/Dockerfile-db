@@ -1,2 +1,2 @@
-FROM mariadb:10.9
+FROM public.ecr.aws/docker/library/postgres:16.1
 ENV APP=REVIVE

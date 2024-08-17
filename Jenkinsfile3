@@ -99,6 +99,7 @@ pipeline {
                     TAG=$(git rev-parse --short=6 HEAD)
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders:$TAG .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db:$TAG . -f Dockerfile-db
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db-rabbitmq:${BUILD_NUMBER} . -f Dockerfile-rabbit-mq
                     '''
                 }  
             }
@@ -121,7 +122,6 @@ pipeline {
                     sh '''
                     TAG=$(git rev-parse --short=6 HEAD)
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets:$TAG .
-                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets-rabbitmq:$TAG . -f Dockerfile-rabbitmq
                     '''
                 }  
             }
@@ -143,10 +143,10 @@ pipeline {
                             'a1cyprien-do-it-yourself-checkout-db',
                             'a1cyprien-do-it-yourself-orders',
                             'a1cyprien-do-it-yourself-orders-db',
+                            'a1cyprien-do-it-yourself-orders-db-rabbitmq',
                             'a1cyprien-do-it-yourself-cart',
                             'a1cyprien-do-it-yourself-cart-dynamo-db',
-                            'a1cyprien-do-it-yourself-assets',
-                            'a1cyprien-do-it-yourself-assets-rabbitmq'
+                            'a1cyprien-do-it-yourself-assets'
                         ]
                         images.each { image ->
                             sh "docker push cyprientemateu/${image}:$TAG"
@@ -164,17 +164,17 @@ pipeline {
                         git clone https://cyprientemateu:${GITHUB_TOKEN}@github.com/cyprientemateu/cyprien-ecommerce-project-automation.git 
                         cd cyprien-ecommerce-project-automation/chart
 
-                        yq eval '.catalog.tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.orders_db.tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.catalog_db.tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.cart.tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.cart_dynamodb.tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.orders.tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.orders_db_rabbitmq.tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.checkout.tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.checkout_db.tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.assets.tag = "'"$TAG"'"' -i values.yaml
-                        yq eval '.ui.tag = "'"$TAG"'"' -i values.yaml
+                        yq eval '.ui.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.catalog.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.catalog-db.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.checkout.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.checkout-db.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.orders.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.orders-db.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.orders-db-rabbitmq.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.cart.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.cart-dynamodb.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.assets.tag = "'"$TAG"'"' -i dev-values.yaml
                         
                         git config --global user.name "cyprientemateu"
                         git config --global user.email cyprien.temateu@yahoo.com

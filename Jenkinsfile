@@ -174,6 +174,7 @@ pipeline {
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders:${BUILD_NUMBER} .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db:${BUILD_NUMBER} . -f Dockerfile-db
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db-rabbitmq:${BUILD_NUMBER} . -f Dockerfile-rabbit-mq
                     '''
                 }  
             }
@@ -194,7 +195,6 @@ pipeline {
                 dir("${WORKSPACE}/do-it-yourself/src/assets"){
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets:${BUILD_NUMBER} .
-                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets-rabbitmq:${BUILD_NUMBER} . -f Dockerfile-rabbitmq
                     '''
                 }  
             }
