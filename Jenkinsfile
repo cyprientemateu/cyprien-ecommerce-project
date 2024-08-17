@@ -139,7 +139,7 @@ pipeline {
 
         stage('Docker build ui') {
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/ui"){
+                dir("${WORKSPACE}/do-it-yourself/src/ui"){
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-ui:${BUILD_NUMBER} .
                     '''
@@ -149,7 +149,7 @@ pipeline {
 
         stage('Docker build catalog') {
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/catalog"){
+                dir("${WORKSPACE}/do-it-yourself/src/catalog"){
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-catalog:${BUILD_NUMBER} .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-catalog-db:${BUILD_NUMBER} . -f Dockerfile-db
@@ -159,7 +159,7 @@ pipeline {
         } 
         stage('Docker build checkout') {
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/checkout"){
+                dir("${WORKSPACE}/do-it-yourself/src/checkout"){
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout:${BUILD_NUMBER} .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout-db:${BUILD_NUMBER} . -f Dockerfile-db
@@ -170,10 +170,11 @@ pipeline {
 
         stage('Docker build orders') {
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/orders"){
+                dir("${WORKSPACE}/do-it-yourself/src/orders"){
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders:${BUILD_NUMBER} .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db:${BUILD_NUMBER} . -f Dockerfile-db
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db-rabbitmq:${BUILD_NUMBER} . -f Dockerfile-rabbit-mq
                     '''
                 }  
             }
@@ -181,7 +182,7 @@ pipeline {
 
         stage('Docker build cart') {
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/cart"){
+                dir("${WORKSPACE}/do-it-yourself/src/cart"){
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-cart:${BUILD_NUMBER} .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-cart-dynamo-db:${BUILD_NUMBER} . -f Dockerfile-dynamodb
@@ -191,10 +192,9 @@ pipeline {
         }
         stage('Docker build assets') {
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/assets"){
+                dir("${WORKSPACE}/do-it-yourself/src/assets"){
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets:${BUILD_NUMBER} .
-                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets-rabbitmq:${BUILD_NUMBER} . -f Dockerfile-rabbitmq
                     '''
                 }  
             }

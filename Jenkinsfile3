@@ -37,25 +37,19 @@ pipeline {
                 }
             }
         }
-        stage('SonarQube analysis') {
-            agent {
-                docker {
-                    image 'sonarsource/sonar-scanner-cli:5.0.1'
-                }
-            }
-            environment {
-                CI = 'true'
-                scannerHome = '/opt/sonar-scanner'
-            }
+
+        stage('Test Current Directory') {
             steps {
-                dir("${WORKSPACE}/cyprien-ecommerce-project"){
-                    withSonarQubeEnv('Sonar') {
-                        sh "${scannerHome}/bin/sonar-scanner"
-                    }
-                }
+                sh '''
+                ls
+                rm -rf cyprien-ecommerce-project@tmp
+                ls
+                pwd
+                whoami
+                '''
             }
         }
-    
+        
         stage('Docker Login') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'tcc-docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
@@ -69,7 +63,7 @@ pipeline {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/ui"){
                     sh '''
                     TAG=$(git rev-parse --short=6 HEAD)
-                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-ui:${TAG} .
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-ui:$TAG .
                     '''
                 }  
             }
@@ -80,8 +74,8 @@ pipeline {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/catalog"){
                     sh '''
                     TAG=$(git rev-parse --short=6 HEAD)
-                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-catalog:${TAG} .
-                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-catalog-db:${TAG} . -f Dockerfile-db
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-catalog:$TAG .
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-catalog-db:$TAG . -f Dockerfile-db
                     '''
                 }  
             }
@@ -91,8 +85,8 @@ pipeline {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/checkout"){
                     sh '''
                     TAG=$(git rev-parse --short=6 HEAD)
-                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout:${TAG} .
-                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout-db:${TAG} . -f Dockerfile-db
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout:$TAG .
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout-db:$TAG . -f Dockerfile-db
                     '''
                 }  
             }
@@ -103,8 +97,9 @@ pipeline {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/orders"){
                     sh '''
                     TAG=$(git rev-parse --short=6 HEAD)
-                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders:${TAG} .
-                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db:${TAG} . -f Dockerfile-db
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders:$TAG .
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db:$TAG . -f Dockerfile-db
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db-rabbitmq:${TAG} . -f Dockerfile-rabbit-mq
                     '''
                 }  
             }
@@ -115,8 +110,8 @@ pipeline {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/cart"){
                     sh '''
                     TAG=$(git rev-parse --short=6 HEAD)
-                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-cart:${TAG} .
-                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-cart-dynamo-db:${TAG} . -f Dockerfile-dynamodb
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-cart:$TAG .
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-cart-dynamo-db:$TAG . -f Dockerfile-dynamodb
                     '''
                 }  
             }
@@ -126,8 +121,7 @@ pipeline {
                 dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/assets"){
                     sh '''
                     TAG=$(git rev-parse --short=6 HEAD)
-                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets:${TAG} .
-                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets-rabbitmq:${TAG} . -f Dockerfile-rabbitmq
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets:$TAG .
                     '''
                 }  
             }
@@ -137,10 +131,10 @@ pipeline {
             steps {
                 script {
                     dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/"){
-                        // Set TAG variable
+                        // Set $TAG variable
                         def tag = sh(script: 'git rev-parse --short=6 HEAD', returnStdout: true).trim()
                         env.TAG = tag
-                        // TAG=$(git rev-parse --short=6 HEAD)
+                        // $TAG=$(git rev-parse --short=6 HEAD)
                         def images = [
                             'a1cyprien-do-it-yourself-ui',
                             'a1cyprien-do-it-yourself-catalog',
@@ -149,57 +143,51 @@ pipeline {
                             'a1cyprien-do-it-yourself-checkout-db',
                             'a1cyprien-do-it-yourself-orders',
                             'a1cyprien-do-it-yourself-orders-db',
+                            'a1cyprien-do-it-yourself-orders-db-rabbitmq',
                             'a1cyprien-do-it-yourself-cart',
                             'a1cyprien-do-it-yourself-cart-dynamo-db',
-                            'a1cyprien-do-it-yourself-assets',
-                            'a1cyprien-do-it-yourself-assets-rabbitmq'
+                            'a1cyprien-do-it-yourself-assets'
                         ]
                         images.each { image ->
-                            sh "docker push cyprientemateu/${image}:${TAG}"
+                            sh "docker push cyprientemateu/${image}:$TAG"
                         }
                     }
                 }
             }
         }
         stage('trigger-deployment') {
-            agent { 
-                label 'deploy' 
-            }
-            when { 
-                expression { 
-                    env.GIT_BRANCH == 'origin/main' 
-                }
-            }
             steps {
-                sh '''
-                    TAG=$(git rev-parse --short=6 HEAD)
-                    rm -rf cyprien-ecommerce-project-automation || true
-                    git clone https://github.com/cyprientemateu/cyprien-ecommerce-project-automation.git 
-                    cd cyprien-ecommerce-project-automation/chart
+                withCredentials([string(credentialsId: 'tcc-github-access', variable: 'GITHUB_TOKEN')]) {
+                    sh '''
+                        TAG=${TAG}
+                        rm -rf cyprien-ecommerce-project-automation || true
+                        git clone https://cyprientemateu:${GITHUB_TOKEN}@github.com/cyprientemateu/cyprien-ecommerce-project-automation.git 
+                        cd cyprien-ecommerce-project-automation/chart
 
-                    yq eval '.catalog.tag = "'"$TAG"'"' -i dev-values.yaml
-                    yq eval '.orders_db.tag = "'"$TAG"'"' -i dev-values.yaml
-                    yq eval '.catalog_db.tag = "'"$TAG"'"' -i dev-values.yaml
-                    yq eval '.cart.tag = "'"$TAG"'"' -i dev-values.yaml
-                    yq eval '.cart_dynamodb.tag = "'"$TAG"'"' -i dev-values.yaml
-                    yq eval '.orders.tag = "'"$TAG"'"' -i dev-values.yaml
-                    yq eval '.orders_db_rabbitmq.tag = "'"$TAG"'"' -i dev-values.yaml
-                    yq eval '.checkout.tag = "'"$TAG"'"' -i dev-values.yaml
-                    yq eval '.checkout_db.tag = "'"$TAG"'"' -i dev-values.yaml
-                    yq eval '.assets.tag = "'"$TAG"'"' -i dev-values.yaml
-                    yq eval '.ui.tag = "'"$TAG"'"' -i dev-values.yaml
-                    
-                    git config --global user.name "cyprientemateu"
-                    git config --global user.email cyprien.temateu@yahoo.com
-                    
-                    git add -A
-                    if git diff-index --quiet HEAD; then
-                        echo "No changes to commit"
-                    else
-                        git commit -m "updating tags to ${TAG}"
-                        git push origin main
-                    fi
-                '''
+                        yq eval '.ui.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.catalog.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.catalog-db.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.checkout.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.checkout-db.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.orders.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.orders-db.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.orders-db-rabbitmq.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.cart.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.cart-dynamodb.tag = "'"$TAG"'"' -i dev-values.yaml
+                        yq eval '.assets.tag = "'"$TAG"'"' -i dev-values.yaml
+                        
+                        git config --global user.name "cyprientemateu"
+                        git config --global user.email cyprien.temateu@yahoo.com
+                        
+                        git add -A
+                        if git diff-index --quiet HEAD; then
+                            echo "No changes to commit"
+                        else
+                            git commit -m "updating tags to ${TAG}"
+                            git push origin main
+                        fi
+                    '''
+                }    
             }
         } 
     }
