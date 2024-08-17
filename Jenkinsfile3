@@ -99,7 +99,7 @@ pipeline {
                     TAG=$(git rev-parse --short=6 HEAD)
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders:$TAG .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db:$TAG . -f Dockerfile-db
-                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db-rabbitmq:${BUILD_NUMBER} . -f Dockerfile-rabbit-mq
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db-rabbitmq:${TAG} . -f Dockerfile-rabbit-mq
                     '''
                 }  
             }
