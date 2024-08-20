@@ -3,22 +3,39 @@ pipeline {
      
     options {
         buildDiscarder(logRotator(numToKeepStr: '3'))
-        // skipDefaultCheckout(true)
+        skipDefaultCheckout(true)
         disableConcurrentBuilds()
         timeout(time: 20, unit: 'MINUTES')
         timestamps()
     }
-
-    environment {
-        DOCKER_CREDENTIALS_ID = 'tcc-docker-hub'
-    }    
     
     triggers {
         githubPush()
     }
 
+    
+
     stages {
-        stage('Unit test Golang Code (catalog)') {
+
+        stage ('Checkout') {
+            steps {
+                dir("${WORKSPACE}/cyprien-ecommerce-project") {
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: "*/${params.BRANCH_NAME}"]],
+                        doGenerateSubmoduleConfigurations: false,
+                        extensions: [[$class: 'LocalBranch']],
+                        submoduleCfg: [],
+                        userRemoteConfigs: [[
+                        url: 'https://github.com/cyprientemateu/cyprien-ecommerce-project.git',
+                        credentialsId: 'tcc-github-access'
+                        ]]
+                    ])
+                }
+            }
+        }
+        
+        stage('Scan Golang Code') {
             agent {
                 docker {
                     image 'golang:1.22.5'
@@ -26,16 +43,17 @@ pipeline {
                 }
             }
             steps {
-                sh '''
-                cd do-it-yourself/src/catalog/
-                ls -la                                                 
-                uname -r
-                go test
-                '''    
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/catalog/")
+                    sh '''
+                    ls -la                                                 
+                    uname -r
+                    go test
+                    '''
+                }    
             }
         }
         
-        stage('Unit Test Maven Code (UI)') {
+        stage('Unit Test UI Code') {
             agent {
                 docker {
                     image 'maven:3.8.5-openjdk-17'
@@ -53,7 +71,7 @@ pipeline {
             }
         }
 
-        stage('Unit Test Maven Code (Cart)') {
+        stage('Unit Test Cart Code') {
             agent {
                 docker {
                     image 'maven:3.8.5-openjdk-17'
@@ -69,7 +87,7 @@ pipeline {
             }
         }
 
-        stage('Unit Test Maven Code (Orders)') {
+        stage('Unit Test Orders Code') {
             agent {
                 docker {
                     image 'maven:3.8.5-openjdk-17'
@@ -84,7 +102,7 @@ pipeline {
             }
         }
         
-        stage('Unit Test Node.js Code (Checkout)') {
+        stage('Scan Checkout Code') {
             agent {
                 docker {
                     image 'node:14' // Use a Node.js Docker image
@@ -102,7 +120,7 @@ pipeline {
             }
         }
 
-        stage('Code Location Test') {
+        stage('Test') {
             steps {
                 sh '''
                 ls
@@ -139,7 +157,7 @@ pipeline {
 
         stage('Docker build ui') {
             steps {
-                dir("${WORKSPACE}/do-it-yourself/src/ui"){
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/ui"){
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-ui:${BUILD_NUMBER} .
                     '''
@@ -149,7 +167,7 @@ pipeline {
 
         stage('Docker build catalog') {
             steps {
-                dir("${WORKSPACE}/do-it-yourself/src/catalog"){
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/catalog"){
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-catalog:${BUILD_NUMBER} .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-catalog-db:${BUILD_NUMBER} . -f Dockerfile-db
@@ -159,7 +177,7 @@ pipeline {
         } 
         stage('Docker build checkout') {
             steps {
-                dir("${WORKSPACE}/do-it-yourself/src/checkout"){
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/checkout"){
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout:${BUILD_NUMBER} .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-checkout-db:${BUILD_NUMBER} . -f Dockerfile-db
@@ -170,11 +188,10 @@ pipeline {
 
         stage('Docker build orders') {
             steps {
-                dir("${WORKSPACE}/do-it-yourself/src/orders"){
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/orders"){
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders:${BUILD_NUMBER} .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db:${BUILD_NUMBER} . -f Dockerfile-db
-                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-orders-db-rabbitmq:${BUILD_NUMBER} . -f Dockerfile-rabbit-mq
                     '''
                 }  
             }
@@ -182,7 +199,7 @@ pipeline {
 
         stage('Docker build cart') {
             steps {
-                dir("${WORKSPACE}/do-it-yourself/src/cart"){
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/cart"){
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-cart:${BUILD_NUMBER} .
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-cart-dynamo-db:${BUILD_NUMBER} . -f Dockerfile-dynamodb
@@ -192,11 +209,37 @@ pipeline {
         }
         stage('Docker build assets') {
             steps {
-                dir("${WORKSPACE}/do-it-yourself/src/assets"){
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/assets"){
                     sh '''
                     docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets:${BUILD_NUMBER} .
+                    docker build -t cyprientemateu/a1cyprien-do-it-yourself-assets-rabbitmq:${BUILD_NUMBER} . -f Dockerfile-rabbitmq
                     '''
                 }  
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src") {
+                    script {
+                        def images = [
+                            'a1cyprien-do-it-yourself-ui',
+                            'a1cyprien-do-it-yourself-catalog',
+                            'a1cyprien-do-it-yourself-catalog-db',
+                            'a1cyprien-do-it-yourself-checkout',
+                            'a1cyprien-do-it-yourself-checkout-db',
+                            'a1cyprien-do-it-yourself-orders',
+                            'a1cyprien-do-it-yourself-orders-db',
+                            'a1cyprien-do-it-yourself-cart',
+                            'a1cyprien-do-it-yourself-cart-dynamo-db',
+                            'a1cyprien-do-it-yourself-assets',
+                            'a1cyprien-do-it-yourself-assets-rabbitmq'
+                        ]
+                        images.each { image ->
+                            sh "docker push cyprientemateu/${image}:${BUILD_NUMBER}"
+                        }
+                    }
+                }   
             }
         } 
     }
@@ -232,9 +275,6 @@ pipeline {
             "\n Build Status : *UNSTABLE*" +
             "\n Action : Please check the console output to fix this job IMMEDIATELY" +
             "\n Build url : ${env.BUILD_URL}"
-        }
-        cleanup {
-            deleteDir()
         }   
     }   
 }

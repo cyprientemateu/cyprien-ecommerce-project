@@ -1,0 +1,174 @@
+pipeline {
+    agent any
+     
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '2'))
+        skipDefaultCheckout(true)
+        disableConcurrentBuilds()
+        timeout(time: 20, unit: 'MINUTES')
+        timestamps()
+    }
+    parameters {
+        string(name: 'BRANCH_NAME', defaultValue: 'main', description: '')
+        string(name: 'SONAR_VERSION', defaultValue: '5.0.1', description: '')
+    }
+    environment {
+        DOCKER_CREDENTIALS_ID = 'tcc-docker-hub'
+    }    
+    
+    triggers {
+        githubPush()
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                dir("${WORKSPACE}/cyprien-ecommerce-project") {
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: "*/${params.BRANCH_NAME}"]],
+                        doGenerateSubmoduleConfigurations: false,
+                        extensions: [[$class: 'LocalBranch']],
+                        submoduleCfg: [],
+                        userRemoteConfigs: [[
+                            url: 'https://github.com/cyprientemateu/cyprien-ecommerce-project.git',
+                            credentialsId: 'tcc-github-access'
+                        ]]
+                    ])
+                }
+                script {
+                    def tag = sh(script: 'cd ${WORKSPACE}/cyprien-ecommerce-project && git rev-parse --short=6 HEAD', returnStdout: true).trim()
+                    env.TAG = tag
+                }
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'tcc-docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin'
+                }
+            }
+        }
+
+        stage('Docker build and push') {
+            steps {
+                script {
+                    def buildDockerImages = { app, path ->
+                        dir("${WORKSPACE}/cyprien-ecommerce-project/do-it-yourself/src/${path}") {
+                            sh """
+                            docker build -t cyprientemateu/a1cyprien-do-it-yourself-${app}:${TAG} .
+                            if [ -f Dockerfile-db ]; then
+                                docker build -t cyprientemateu/a1cyprien-do-it-yourself-${app}-db:${TAG} . -f Dockerfile-db
+                            fi
+                            if [ -f Dockerfile-dynamodb ]; then
+                                docker build -t cyprientemateu/a1cyprien-do-it-yourself-${app}-dynamo-db:${TAG} . -f Dockerfile-dynamodb
+                            fi
+                            if [ -f Dockerfile-rabbitmq ]; then
+                                docker build -t cyprientemateu/a1cyprien-do-it-yourself-${app}-rabbitmq:${TAG} . -f Dockerfile-rabbitmq
+                            fi
+                            """
+                            sh "docker push cyprientemateu/a1cyprien-do-it-yourself-${app}:${TAG}"
+                            if (fileExists('Dockerfile-db')) {
+                                sh "docker push cyprientemateu/a1cyprien-do-it-yourself-${app}-db:${TAG}"
+                            }
+                            if (fileExists('Dockerfile-dynamodb')) {
+                                sh "docker push cyprientemateu/a1cyprien-do-it-yourself-${app}-dynamo-db:${TAG}"
+                            }
+                            if (fileExists('Dockerfile-rabbitmq')) {
+                                sh "docker push cyprientemateu/a1cyprien-do-it-yourself-${app}-rabbitmq:${TAG}"
+                            }
+                        }
+                    }
+
+                    def apps = [
+                        [app: 'ui', path: 'ui'],
+                        [app: 'catalog', path: 'catalog'],
+                        [app: 'checkout', path: 'checkout'],
+                        [app: 'orders', path: 'orders'],
+                        [app: 'cart', path: 'cart'],
+                        [app: 'assets', path: 'assets']
+                    ]
+
+                    apps.each { app ->
+                        buildDockerImages(app.app, app.path)
+                    }
+                }
+            }
+        }
+
+        stage('trigger-deployment') {
+            agent { 
+                label 'deploy' 
+            }
+            when { 
+                expression { 
+                    env.GIT_BRANCH == 'origin/main' 
+                }
+            }
+            steps {
+                sh '''
+                    rm -rf cyprien-ecommerce-project-automation || true
+                    git clone https://github.com/cyprientemateu/cyprien-ecommerce-project-automation.git 
+                    cd cyprien-ecommerce-project-automation/chart
+
+                    yq eval '.catalog.tag = "'"${TAG}"'"' -i dev-values.yaml
+                    yq eval '.orders_db.tag = "'"${TAG}"'"' -i dev-values.yaml
+                    yq eval '.catalog_db.tag = "'"${TAG}"'"' -i dev-values.yaml
+                    yq eval '.cart.tag = "'"${TAG}"'"' -i dev-values.yaml
+                    yq eval '.cart_dynamodb.tag = "'"${TAG}"'"' -i dev-values.yaml
+                    yq eval '.orders.tag = "'"${TAG}"'"' -i dev-values.yaml
+                    yq eval '.orders_db_rabbitmq.tag = "'"${TAG}"'"' -i dev-values.yaml
+                    yq eval '.checkout.tag = "'"${TAG}"'"' -i dev-values.yaml
+                    yq eval '.checkout_db.tag = "'"${TAG}"'"' -i dev-values.yaml
+                    yq eval '.assets.tag = "'"${TAG}"'"' -i dev-values.yaml
+                    yq eval '.ui.tag = "'"${TAG}"'"' -i dev-values.yaml
+                    
+                    git config --global user.name "cyprientemateu"
+                    git config --global user.email cyprien.temateu@yahoo.com
+                    
+                    git add -A
+                    if git diff-index --quiet HEAD; then
+                        echo "No changes to commit"
+                    else
+                        git commit -m "updating tags to ${TAG}"
+                        git push origin main
+                    fi
+                '''
+            }
+        }
+    }
+    post {
+        success {
+            slackSend(color: '#2EB67D',
+            channel: 'development-alerts', 
+            message: "*a1cyprien-do-it-yourself Project Build Status*" +
+            "\n Project Name: do-it-yourself" +
+            "\n Job Name: ${env.JOB_NAME}" +
+            "\n Build number: ${currentBuild.displayName}" +
+            "\n Build Status : *SUCCESS*" +
+            "\n Build url : ${env.BUILD_URL}")
+        }
+        failure {
+            slackSend(color: '#E01E5A',
+            channel: 'development-alerts',  
+            message: "*a1cyprien-do-it-yourself Project Build Status*" +
+            "\n Project Name: do-it-yourself" +
+            "\n Job Name: ${env.JOB_NAME}" +
+            "\n Build number: ${currentBuild.displayName}" +
+            "\n Build Status : *FAILED*" +
+            "\n Action : Please check the console output to fix this job IMMEDIATELY" +
+            "\n Build url : ${env.BUILD_URL}")
+        }
+        unstable {
+            slackSend(color: '#ECB22E',
+            channel: 'development-alerts', 
+            message: "*a1cyprien-do-it-yourself Project Build Status*" +
+            "\n Project Name: do-it-yourself" +
+            "\n Job Name: ${env.JOB_NAME}" +
+            "\n Build number: ${currentBuild.displayName}" +
+            "\n Build Status : *UNSTABLE*" +
+            "\n Action : Please check the console output to fix this job IMMEDIATELY" +
+            "\n Build url : ${env.BUILD_URL}")
+        }   
+    }
+}
