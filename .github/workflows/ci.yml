@@ -1,0 +1,346 @@
+name: CI
+
+# Required repo secrets (Settings -> Secrets and variables -> Actions):
+#   DOCKERHUB_USERNAME        - your Docker Hub username
+#   DOCKERHUB_TOKEN           - Docker Hub access token (not your password)
+#   SONAR_TOKEN               - SonarCloud token
+#   CD_REPO_DISPATCH_TOKEN    - fine-grained GitHub PAT, scoped only to
+#                               "Contents: read" + "Actions/Dispatches: write"
+#                               on cyprien-ecommerce-project-automation
+# Optional:
+#   NVD_API_KEY               - speeds up / stabilizes OWASP Dependency-Check
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DOCKERHUB_NAMESPACE: cyprientemateu
+  IMAGE_PREFIX: a1cyprien_do_it_yourself
+
+jobs:
+  secrets-scan:
+    name: Secrets scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  validate-release-tag:
+    name: Validate release tag format
+    runs-on: ubuntu-latest
+    steps:
+      # Same semver check as validate.sh in the automation repo (kept inline
+      # here since this repo has no dependency on that repo's files).
+      - name: Validate semver tag (release pushes only)
+        run: |
+          TAG_APPS="${{ github.ref_name }}"
+          if [[ "${{ github.ref }}" != refs/tags/* ]]; then
+            echo "Not a tag push, skipping semver validation."
+          elif [[ ! "$TAG_APPS" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: tag '$TAG_APPS' does not match version pattern 'vX.Y.Z'."
+            exit 1
+          else
+            echo "Tag '$TAG_APPS' is a valid release tag."
+          fi
+
+  test:
+    name: Unit tests (${{ matrix.service }})
+    needs: secrets-scan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: catalog
+            runtime: go
+            path: do-it-yourself/src/catalog
+          - service: ui
+            runtime: maven
+            path: do-it-yourself/src/ui
+          - service: cart
+            runtime: maven
+            path: do-it-yourself/src/cart
+          - service: orders
+            runtime: maven
+            path: do-it-yourself/src/orders
+          - service: checkout
+            runtime: node
+            path: do-it-yourself/src/checkout
+    steps:
+      - uses: actions/checkout@v4
+
+      - if: matrix.runtime == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ matrix.path }}/go.mod
+
+      - if: matrix.runtime == 'go'
+        name: go test
+        working-directory: ${{ matrix.path }}
+        run: go test ./...
+
+      - if: matrix.runtime == 'maven'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - if: matrix.runtime == 'maven'
+        name: mvn test
+        working-directory: ${{ matrix.path }}
+        run: ./mvnw -B test
+
+      - if: matrix.runtime == 'node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - if: matrix.runtime == 'node'
+        name: npm test
+        working-directory: ${{ matrix.path }}
+        run: |
+          npm ci
+          npm test
+
+  sast-sonarcloud:
+    name: SAST (SonarCloud)
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+
+  sast-semgrep:
+    name: SAST (Semgrep)
+    needs: secrets-scan
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - name: Semgrep scan
+        run: semgrep scan --config p/ci --config p/owasp-top-ten --error
+
+  sca-dependency-review:
+    name: SCA (dependency review, PRs only)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+
+  sca-per-language:
+    name: SCA (${{ matrix.service }})
+    needs: secrets-scan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: catalog
+            tool: govulncheck
+            path: do-it-yourself/src/catalog
+          - service: ui
+            tool: owasp-dc
+            path: do-it-yourself/src/ui
+          - service: cart
+            tool: owasp-dc
+            path: do-it-yourself/src/cart
+          - service: orders
+            tool: owasp-dc
+            path: do-it-yourself/src/orders
+          - service: checkout
+            tool: npm-audit
+            path: do-it-yourself/src/checkout
+    steps:
+      - uses: actions/checkout@v4
+
+      - if: matrix.tool == 'govulncheck'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ matrix.path }}/go.mod
+
+      - if: matrix.tool == 'govulncheck'
+        working-directory: ${{ matrix.path }}
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+      - if: matrix.tool == 'owasp-dc'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # NVD's public API is heavily rate-limited without a key; this job is
+      # non-blocking (continue-on-error) until NVD_API_KEY is configured.
+      - if: matrix.tool == 'owasp-dc'
+        working-directory: ${{ matrix.path }}
+        continue-on-error: true
+        run: |
+          ./mvnw -B org.owasp:dependency-check-maven:check \
+            -DfailBuildOnCVSS=9 \
+            ${{ secrets.NVD_API_KEY != '' && format('-DnvdApiKey={0}', secrets.NVD_API_KEY) || '' }}
+
+      - if: matrix.tool == 'npm-audit'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - if: matrix.tool == 'npm-audit'
+        working-directory: ${{ matrix.path }}
+        run: |
+          npm ci
+          npm audit --audit-level=high
+
+  build-and-push:
+    name: Build & push (${{ matrix.image }})
+    if: github.event_name != 'pull_request'
+    needs: [test, sast-sonarcloud, secrets-scan, validate-release-tag]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: ui
+            path: do-it-yourself/src/ui
+            dockerfile: Dockerfile
+          - image: catalog
+            path: do-it-yourself/src/catalog
+            dockerfile: Dockerfile
+          - image: catalog_db
+            path: do-it-yourself/src/catalog
+            dockerfile: Dockerfile-db
+          - image: cart
+            path: do-it-yourself/src/cart
+            dockerfile: Dockerfile
+          - image: cart_dynamodb
+            path: do-it-yourself/src/cart
+            dockerfile: Dockerfile-dynamodb
+          - image: orders
+            path: do-it-yourself/src/orders
+            dockerfile: Dockerfile
+          - image: orders_db
+            path: do-it-yourself/src/orders
+            dockerfile: Dockerfile-db
+          - image: orders_db_rabbitmq
+            path: do-it-yourself/src/orders
+            dockerfile: Dockerfile-rabbit-mq
+          - image: checkout
+            path: do-it-yourself/src/checkout
+            dockerfile: Dockerfile
+          - image: checkout_db
+            path: do-it-yourself/src/checkout
+            dockerfile: Dockerfile-db
+          - image: assets
+            path: do-it-yourself/src/assets
+            dockerfile: Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_PREFIX }}_${{ matrix.image }}
+          tags: |
+            type=raw,value={{sha}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+
+      - uses: docker/build-push-action@v6
+        id: build
+        with:
+          context: ${{ matrix.path }}
+          file: ${{ matrix.path }}/${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_PREFIX }}_${{ matrix.image }}@${{ steps.build.outputs.digest }}
+          format: sarif
+          output: trivy-${{ matrix.image }}.sarif
+          severity: CRITICAL,HIGH
+          # Report-only for now while the team triages the initial findings
+          # baseline (mostly inherited from the public.ecr.aws base images).
+          # Flip to '1' once that baseline is clean, to start gating merges.
+          exit-code: "0"
+
+      - name: Upload Trivy results to code scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-${{ matrix.image }}.sarif
+          category: trivy-${{ matrix.image }}
+
+      - name: Generate SBOM (Syft)
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_PREFIX }}_${{ matrix.image }}@${{ steps.build.outputs.digest }}
+          format: cyclonedx-json
+          output-file: sbom-${{ matrix.image }}.cyclonedx.json
+          upload-artifact: true
+
+      - name: Cosign install
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign image (keyless)
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: cosign sign --yes ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_PREFIX }}_${{ matrix.image }}@${{ steps.build.outputs.digest }}
+
+  trigger-cd-update:
+    name: Notify automation repo
+    needs: build-and-push
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compute tag + environment
+        id: vars
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "environment=production" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+            echo "environment=dev" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.CD_REPO_DISPATCH_TOKEN }}
+          repository: cyprientemateu/cyprien-ecommerce-project-automation
+          event-type: images-updated
+          client-payload: |
+            {
+              "tag": "${{ steps.vars.outputs.tag }}",
+              "environment": "${{ steps.vars.outputs.environment }}",
+              "sha": "${{ github.sha }}"
+            }
