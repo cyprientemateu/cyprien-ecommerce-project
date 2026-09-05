@@ -123,6 +123,14 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+      # sonar.java.binaries requires real compiled classes to exist on disk;
+      # compile (don't test, that already ran in the test job) each Maven
+      # service so the Java analyzer has bytecode to work with.
+      - name: Compile Maven services for analysis
+        run: |
+          for svc in ui cart orders; do
+            (cd do-it-yourself/src/$svc && ./mvnw -B compile)
+          done
       - uses: SonarSource/sonarqube-scan-action@v4
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
