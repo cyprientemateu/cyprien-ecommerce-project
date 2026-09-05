@@ -135,7 +135,7 @@ cyprien-ecommerce-project/
 
 ## ✅ Current Capabilities
 
-See [`docs/ENGINEERING_JOURNAL.md`](docs/ENGINEERING_JOURNAL.md#-current-capabilities-as-of-session-3--phase-1) for the full, kept-up-to-date snapshot. As of the latest session:
+See [`docs/ENGINEERING_JOURNAL.md`](docs/ENGINEERING_JOURNAL.md#-current-capabilities-as-of-session-5) for the full, kept-up-to-date snapshot. As of the latest session:
 
 - Consolidated CI pipeline authored, replacing three overlapping legacy Jenkinsfiles
 - Real per-service unit tests (a legacy test-skipping bug is fixed)

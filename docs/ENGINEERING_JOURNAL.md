@@ -202,7 +202,44 @@ Semgrep's 36 findings included several categories:
 
 ---
 
-# 📊 Current Capabilities (as of Session 4)
+# SESSION 5 — 2026-09-05 — Second Live Run: Real Findings vs. Real Bugs
+
+## Objective
+Push the Session 4 fixes, watch the second live run, and separate "the pipeline is broken" from "the pipeline correctly found something real."
+
+## What I Did
+
+### Progress from Session 4's fixes
+`checkout`, `ui`, `orders`, and `catalog` unit tests all passed this run — confirming the `mvnw` executable-bit fix and the `--passWithNoTests` fix both worked.
+
+### `cart` unit tests — a second real bug
+`DynamoDBCartServiceTests` (4 tests) failed with `SdkClientException: Unable to load AWS credentials from any provider in the chain`. Traced it to the actual code:
+- `DynamoDBConfiguration.amazonDynamoDB()` only overrides the client's endpoint if `carts.dynamodb.endpoint` is set — otherwise it builds a client pointed at real AWS.
+- The test's `application.properties` sets `aws.accessKeyId`/`aws.secretKey`, but those are **Spring properties in a test resource file**, not JVM system properties — the AWS SDK v1 credential chain only reads actual `System.getProperty("aws.accessKeyId")`/`aws.secretKey`, which Spring's environment never populates. The test's credential setup has never actually worked; it was masked by `-DskipTests=true` in the old Jenkins pipeline.
+- This exactly mirrors what `docker-compose.yml` already does for local dev (`CARTS_DYNAMODB_ENDPOINT`, dummy `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`) — the pattern already exists in the project, it just was never wired into the test run.
+
+**Fix**: added a conditional step (only for the `cart` matrix leg) that starts `amazon/dynamodb-local:1.20.0` via `docker run`, waits for it to accept connections, then runs `mvnw test` with `CARTS_DYNAMODB_ENDPOINT=http://localhost:8000` (env var, relaxed-bound to `carts.dynamodb.endpoint`) and `-Daws.accessKeyId=test -Daws.secretKey=test` (real JVM system properties this time, which Surefire forwards to the forked test JVM by default).
+
+### Semgrep — a workflow bug, not a code bug
+Semgrep's scan itself succeeded (0 exit) after Session 4's switch to `--sarif` output, but the **new** `upload-sarif` step failed: `Error: Resource not accessible by integration`. Root cause: uploading SARIF to GitHub's code scanning API requires the `security-events: write` permission, which this job didn't declare (GitHub's default `GITHUB_TOKEN` permissions don't include it). Fixed by adding an explicit `permissions:` block to the `sast-semgrep` job. Proactively added the same block — plus `id-token: write`, which keyless cosign signing needs for its Sigstore OIDC flow — to `build-and-push` too, since it has the same Trivy-upload-sarif step and hasn't run yet.
+
+### `govulncheck` and `npm audit` — real findings, not bugs
+Both tools now run successfully (the Go-toolchain fix from Session 4 worked) and both exit non-zero because they found **real, extensive, pre-existing vulnerabilities**: 39 findings from `govulncheck` (mostly Go standard-library CVEs only fixed in newer Go patch releases than this module's declared `go 1.18`), and 96 from `npm audit` (`10 low, 54 moderate, 26 high, 6 critical`, frozen dependency versions from the original 2022-era AWS sample fork). Applied the same report-only rollout already used for Trivy and Semgrep: `continue-on-error: true` on both steps, to be flipped to blocking once each baseline is triaged.
+
+## Capabilities at this point
+- Every previously-failing job now has a diagnosed, correct fix in place (pushed, not yet re-verified with a clean run)
+- Three categories of "failure" are now clearly distinguished in the journal: infrastructure/config bugs (mvnw perms, wrong action refs, missing job permissions) vs. missing test setup (cart's DynamoDB dependency) vs. real, extensive pre-existing findings that need a separate triage effort (Go stdlib CVEs, npm audit backlog) rather than blocking this migration
+
+## Lessons Learned
+- A test class's credential setup can look complete (values are present in a properties file) while being silently wrong (wrong property namespace entirely) — always check *which* runtime actually reads the property, not just whether a property with a plausible name exists somewhere.
+- Maven Surefire forwards the launching JVM's system properties to the forked test JVM by default (no explicit `<systemPropertyVariables>` needed) unless the project's POM overrides that — worth confirming per-project rather than assuming either way.
+- `upload-sarif` and any GitHub code-scanning integration needs `security-events: write` explicitly declared per job; it is not part of the default `GITHUB_TOKEN` permission set.
+- Cosign's keyless signing flow needs `id-token: write` for its Sigstore OIDC exchange — worth granting proactively before the job that needs it ever runs, rather than waiting to discover the gap live.
+- Three different tools (Semgrep, govulncheck, npm audit) all needed the exact same policy decision on their first real run: report-only until the pre-existing finding baseline is triaged. Recognizing that as one repeated pattern, not three separate problems, kept the fixes consistent.
+
+---
+
+# 📊 Current Capabilities (as of Session 5)
 
 ## Done
 - Both repos on stable, corruption-free git, outside OneDrive sync
@@ -231,8 +268,8 @@ Semgrep's 36 findings included several categories:
 # 🚀 Planned Roadmap
 
 ## Short-Term (next few working sessions)
-- Confirm a fully green end-to-end run on GitHub following the Session 4 fixes, including a look at the first Trivy/SBOM artifacts and the SonarCloud dashboard
-- Triage the Semgrep report-only findings via the GitHub code scanning tab: fix the Spring Boot Actuator over-exposure (`include: '*'`) in `cart`/`orders`/`ui`'s `application.yml`, and add `securityContext.allowPrivilegeEscalation: false` to `do-it-yourself/src/load-generator/manifest.yml`
+- Confirm a fully green end-to-end run on GitHub following the Session 5 fixes, including a look at the first Trivy/SBOM artifacts and the SonarCloud dashboard
+- Triage the report-only findings (Semgrep, Trivy, govulncheck, npm audit) via the GitHub code scanning tab and each tool's own report: fix the Spring Boot Actuator over-exposure (`include: '*'`) in `cart`/`orders`/`ui`'s `application.yml`, add `securityContext.allowPrivilegeEscalation: false` to `do-it-yourself/src/load-generator/manifest.yml`, and decide on a remediation plan for the frozen npm/Go dependency baselines (39 + 96 findings) before flipping any of these gates to blocking
 - Write real unit test coverage for the `checkout` service (currently zero `*.spec.ts` files — `--passWithNoTests` is a documented gap, not a fix)
 - Convert at least one service's Dockerfile (catalog is the easiest — Go, straightforward multi-stage build) to actually compile from local source, since most services today just relabel AWS's pre-built images rather than shipping what CI tested
 - Stand up a local kind cluster and ArgoCD; fix the automation repo's Helm chart by turning it into an umbrella chart over the already-well-built (but currently unused) per-service charts; delete the broken `deploy.yaml`
