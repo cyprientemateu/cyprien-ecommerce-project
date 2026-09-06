@@ -239,36 +239,67 @@ Both tools now run successfully (the Go-toolchain fix from Session 4 worked) and
 
 ---
 
-# 📊 Current Capabilities (as of Session 5)
+# SESSION 6 — 2026-09-06 — First Fully Green Run: Two Credential-Scope Bugs
+
+## Objective
+Resolve whatever remained from Session 5's push and get `ci.yml` to a genuine, fully green, end-to-end run.
+
+## What I Did
+
+### `build-and-push` — Docker Hub token scope
+All 11 image builds failed identically at the push step:
+```
+failed to push .../a1cyprien_do_it_yourself_assets:8864787: failed to authorize:
+failed to fetch oauth token: ... 401 Unauthorized: access token has insufficient scopes
+```
+Login succeeded (the base image pull worked fine), only the push was rejected — the signature of a Docker Hub access token created with **Read-only** scope rather than **Read & Write**. Fixed on Docker Hub's side by regenerating `DOCKERHUB_TOKEN` with write access. Not a workflow bug; a credential-provisioning gap from initial secret setup.
+
+### `trigger-cd-update` — wrong PAT permission (my error)
+`repository_dispatch` failed: `Error: Resource not accessible by personal access token`. Root cause: my original guidance for `CD_REPO_DISPATCH_TOKEN` (back when repo secrets were first set up) specified `Actions: Read and write` — but the `POST /repos/{owner}/{repo}/dispatches` endpoint actually requires **Contents: Read and write** on a fine-grained PAT. `Actions` permission covers workflow-run operations (re-run, cancel, read logs), not triggering dispatch events. Fixed by editing the token's permissions on GitHub (repository access stayed scoped to just the automation repo; only the permission changed, not the token string).
+
+### `SCA (dependency review, PRs only)` — skip, not a bug
+User asked why this job showed as skipped. By design: `if: github.event_name == 'pull_request'` — the GitHub `dependency-review-action` diffs a PR's dependency changes against its base branch, which only makes sense on an actual pull request, not a direct push to `main`. It will run for real on the next PR opened against `main`.
+
+## Result
+**First fully green run, end to end**: secrets scan → all 5 services' unit tests → both SAST tools → all SCA jobs (report-only ones included) → all 11 image builds, scans, SBOMs, and signings → the `repository_dispatch` notification to the automation repo. Phase 1 (GitHub Actions CI migration) is complete and verified, not just authored.
+
+## Lessons Learned
+- Docker Hub access tokens are scoped at creation (Read-only / Read & Write / Read-Write-Delete) — a token that successfully authenticates can still be rejected on `push` specifically if scoped read-only. The "401 insufficient scopes" error text is the tell, distinct from a plain "unauthorized" login failure.
+- GitHub fine-grained PAT permission names don't always map intuitively to REST API operations — `repository_dispatch` sits under **Contents**, not **Actions**. When granting a PAT for a specific API call, check that endpoint's documented required permission directly rather than guessing from the feature area it seems to belong to. (This was my own mistake in the original secret-setup guidance — worth remembering for the next token this project needs.)
+- A job showing "Skipped" in the Actions UI isn't inherently a signal something's wrong — check the job's `if:` condition against what actually triggered the run before assuming it's broken.
+
+---
+
+# 📊 Current Capabilities (as of Session 6)
 
 ## Done
 - Both repos on stable, corruption-free git, outside OneDrive sync
 - Dead files removed from both repos
-- Consolidated, single-source-of-truth CI pipeline authored **and verified against a live run** for the app repo
-- Real unit tests running per service (skip-tests bug fixed, mvnw permissions fixed)
-- Secrets scanning (gitleaks), dual SAST (SonarCloud + Semgrep), per-language SCA, PR dependency review — all with correct, resolvable action references
-- Container image scanning (Trivy), SBOM generation (Syft), keyless image signing (cosign) wired into every build
+- Consolidated, single-source-of-truth CI pipeline authored **and verified with a fully green live run** for the app repo
+- Real unit tests running per service, including `cart`'s DynamoDB-dependent tests (skip-tests bug fixed, mvnw permissions fixed)
+- Secrets scanning (gitleaks), dual SAST (SonarCloud + Semgrep), per-language SCA, PR dependency review — all with correct, resolvable action references and correct credential scopes
+- All 11 image variants build, get scanned (Trivy), get an SBOM (Syft), get signed (cosign), and push successfully to Docker Hub
+- `repository_dispatch` successfully notifies the automation repo on every push to `main`
 - CodeQL scheduled scanning
 - SonarCloud project created and correctly keyed; `sonar-project.properties` matches the real project
 - Every GitHub Action pinned to a commit SHA (Semgrep-driven supply-chain hardening)
-- Semgrep and Trivy both running in report-only mode with findings visible in GitHub's code scanning tab
+- Semgrep, Trivy, govulncheck, and npm audit all running in report-only mode with findings visible in GitHub's code scanning tab / job logs
 
 ## Not Yet Done
-- Full pipeline hasn't yet completed a fully green run end to end (fixes from this session are pushed but not yet re-verified — see immediate next step)
-- No receiving workflow in the automation repo for `repository_dispatch` yet
+- No receiving workflow in the automation repo for `repository_dispatch` yet (the event fires successfully, but nothing there listens for it)
 - Automation repo's Helm chart is still the broken hand-flattened `deploy.yaml`, still with two committed base64 "secrets"
 - No kind/minikube cluster or ArgoCD installed yet
 - No NetworkPolicies, Pod Security Admission, or cluster-side signature verification yet
 - No DAST scanning yet (needs a live deployed target)
 - Old Jenkinsfiles in the automation repo (docker-compose-based deploy path) still present
-- **New from this session:** Spring Boot Actuator fully exposed on `cart`/`orders`/`ui`; `load-generator` Kubernetes manifest missing `allowPrivilegeEscalation: false`; `checkout` service has no unit test coverage at all (only an untested-in-CI e2e spec)
+- Spring Boot Actuator fully exposed on `cart`/`orders`/`ui`; `load-generator` Kubernetes manifest missing `allowPrivilegeEscalation: false`; `checkout` service has no unit test coverage at all (only an untested-in-CI e2e spec)
+- Report-only findings (Semgrep, Trivy, govulncheck: 39, npm audit: 96) not yet triaged
 
 ---
 
 # 🚀 Planned Roadmap
 
 ## Short-Term (next few working sessions)
-- Confirm a fully green end-to-end run on GitHub following the Session 5 fixes, including a look at the first Trivy/SBOM artifacts and the SonarCloud dashboard
 - Triage the report-only findings (Semgrep, Trivy, govulncheck, npm audit) via the GitHub code scanning tab and each tool's own report: fix the Spring Boot Actuator over-exposure (`include: '*'`) in `cart`/`orders`/`ui`'s `application.yml`, add `securityContext.allowPrivilegeEscalation: false` to `do-it-yourself/src/load-generator/manifest.yml`, and decide on a remediation plan for the frozen npm/Go dependency baselines (39 + 96 findings) before flipping any of these gates to blocking
 - Write real unit test coverage for the `checkout` service (currently zero `*.spec.ts` files — `--passWithNoTests` is a documented gap, not a fix)
 - Convert at least one service's Dockerfile (catalog is the easiest — Go, straightforward multi-stage build) to actually compile from local source, since most services today just relabel AWS's pre-built images rather than shipping what CI tested
