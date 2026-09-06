@@ -268,6 +268,10 @@ User asked why this job showed as skipped. By design: `if: github.event_name == 
 - GitHub fine-grained PAT permission names don't always map intuitively to REST API operations — `repository_dispatch` sits under **Contents**, not **Actions**. When granting a PAT for a specific API call, check that endpoint's documented required permission directly rather than guessing from the feature area it seems to belong to. (This was my own mistake in the original secret-setup guidance — worth remembering for the next token this project needs.)
 - A job showing "Skipped" in the Actions UI isn't inherently a signal something's wrong — check the job's `if:` condition against what actually triggered the run before assuming it's broken.
 
+## 📸 Evidence
+- [SonarCloud dashboard — first analysis, quality metrics computed](../images/screenshots/s6-sonarcloud-dashboard.png)
+- [Docker Hub — all 11 image repositories pushed successfully](../images/screenshots/s6-dockerhub-repositories.png)
+
 ---
 
 # 📊 Current Capabilities (as of Session 6)
