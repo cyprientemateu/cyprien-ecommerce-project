@@ -5,10 +5,10 @@ app_name: "orders"
 replicaCount: 3
 
 image:
-  repository: prinsoo/revive-app
+  repository: cyprientemateu/a1cyprien_do_it_yourself_orders
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "orders-v1"
+  tag: "latest"
 
 imagePullSecrets: []
 nameOverride: ""
