@@ -274,53 +274,99 @@ User asked why this job showed as skipped. By design: `if: github.event_name == 
 
 ---
 
-# 📊 Current Capabilities (as of Session 6)
+# SESSION 7 — 2026-09-20 — Phase 3: kind + ArgoCD, and Making the Chart Actually Work
+
+## Objective
+Stand up a local Kubernetes cluster and ArgoCD, turn the automation repo's broken `deploy.yaml` into a real umbrella chart, and get the app genuinely running from personal images under ArgoCD's management — not just rendering, actually running.
+
+## What I Did
+
+### Environment check before starting
+Confirmed `kind` was installed (in the `Ubuntu-24.04` WSL distro, from a prior session) but no cluster existed. Installed `helm` there too — the official install script's `sudo cp` step hung indefinitely (no TTY for a password prompt in a non-interactive WSL invocation); switched to a user-local install (`~/.local/bin/helm`, no root needed) instead.
+
+### An 11-month-old forgotten kind cluster was starving WSL2 of memory
+`kind create cluster --name revive` succeeded, but the resulting `revive-control-plane` container immediately went into a crash/restart loop, and ArgoCD's install (also done this session, via `kubectl apply --server-side` — plain `apply` failed on one CRD exceeding etcd's 256KB last-applied-configuration annotation limit) landed on top of an already-strained VM. Root cause: a second, completely unrelated `kind-control-plane` container had been running for **11 months**, invisible in an earlier session's check (Docker Desktop's WSL2 backend likely hadn't finished syncing state that time). Two Kubernetes control planes in a WSL2 VM capped at 5.8GB total memory left neither one stable. Asked before touching it — confirmed it was safe to delete, freed ~1GB, and the crash loop stopped immediately.
+
+### Repointed and vendored the per-service charts
+Repointed all 6 app-service charts under `do-it-yourself/helm-chart/` (this repo) from the stale `prinsoo/revive-app` to the real `cyprientemateu/a1cyprien_do_it_yourself_<service>` images. Then, in the automation repo, copied all 11 per-service chart directories (6 app + 5 datastore: mariadb, dynamodb-local, redis, postgresql, rabbitmq) verbatim into `chart/charts/` as plain vendored subdirectories — Helm auto-discovers any chart under `charts/`, no `dependencies:` block or `helm dependency update` network resolution needed, so a bare `git clone` of the automation repo alone is enough to render or install it. Deleted the old hand-flattened `templates/deploy.yaml` and its unused `_helpers.tpl`, and collapsed four old values files down to `values.yaml` + `values-dev.yaml` + `values-production.yaml`.
+
+### The datastore subcharts were already correctly pre-wired — good news I almost second-guessed
+Expected to need to hand-wire hostnames between the app charts and the Bitnami-based datastore subcharts (e.g. catalog → its MariaDB). Checked instead of assuming, and found the original chart author had already done this: catalog's Go binary defaults `DB_ENDPOINT` to `catalog-db:3306` in code, and the mariadb subchart's `primary.service.name` value is already hardcoded to `"catalog-db"` — same exact-match pattern for orders-db/postgresql (`orders-db`), checkout-db/redis (`checkout-redis`, via `master.service.name`, independent of replication architecture), and carts-db/dynamodb-local (`carts-db`, via a direct `app_name` value). Confirmed via `helm template` + a small script parsing the rendered Service objects rather than trusting my own reading of nested Bitnami values files. The one real gap: rabbitmq's default `auth.username` ("orders_user") doesn't match what the orders Spring app actually connects as (Spring's own default, `guest`/`guest`, since orders sets no override) — fixed with a values override rather than templating changes.
+
+### Bitnami pulled the exact image tags these charts pin
+First real deploy attempt: `mariadb`, `postgresql`, `redis`, and `rabbitmq` all failed with `ImagePullBackOff` — `docker.io/bitnami/mariadb:11.2.2-debian-11-r6: not found`. This is Broadcom's 2025 change to Bitnami's free container images: older/specific tags were pulled from the public `bitnami/*` Docker Hub namespace. A community-run `bitnamilegacy/*` archive exists, but only kept newer snapshots than what these charts originally pinned — queried Docker Hub's API directly for what's actually available and repointed all four to the closest current tag (`mariadb:11.8.3`, `postgresql:17.6.0`, `redis:8.2.1`, `rabbitmq:4.1.3`) rather than guessing.
+
+### The HPA default was silently overriding `replicaCount`
+Set `replicaCount: 1` in `values-dev.yaml` for every app service to keep this light on a laptop-hosted kind cluster — `catalog` obeyed it, the other five didn't, still coming up with 3 replicas each. Root cause: those five default `autoscaling.enabled: true` with `minReplicas: 3` (`catalog` is the one exception, already `false`), and the Deployment template omits the `replicas:` field entirely whenever autoscaling is enabled, handing control to the HPA instead — which kind has no `metrics-server` for anyway, so it was just stuck at its floor. Disabled autoscaling in the dev overlay rather than leaving it non-functional.
+
+### Two JVM services got OOMKilled at the charts' default memory limit
+After the image and replica fixes, `carts` and `orders` kept crash-looping — but with climbing restart counts even *after* their dependencies had been stable for several minutes, unlike the transient dependency-not-ready restarts everything else settled out of. `kubectl describe pod` showed the real reason directly: `Last State: Terminated, Reason: OOMKilled, Exit Code: 137`. Both charts default to a 256Mi memory limit, too tight for a Spring Boot JVM carrying the OpenTelemetry javaagent. Bumped both to 512Mi in the dev overlay (matching `ui`'s chart, which already used 512Mi and had stayed stable throughout).
+
+### First successful manual deploy, then handed off to ArgoCD properly
+`helm install` into a `revive-dev` namespace eventually reached all 11 pods `1/1 Running`, and `curl` through a port-forward to the `ui` service returned a real 200 with the rendered storefront HTML (13241 bytes) — full `ui → catalog → mariadb` connectivity confirmed, not just pods being up. Rather than leave that manual release in place, uninstalled it, committed and pushed the corrected chart plus two new `argocd/application-{dev,production}.yaml` manifests (dev: automated sync + self-heal; production: no `automated:` block, a deliberate human-approval gate, not yet wired to a real release tag), then applied the dev Application directly. ArgoCD synced it from GitHub — not from local files — straight to `Synced` / `Healthy`, and the same `curl` test against the ArgoCD-managed `ui` service returned the identical 13241-byte response.
+
+## Capabilities at this point
+- A local kind cluster (`revive`) and ArgoCD are running, both confirmed stable after resolving the memory contention
+- The automation repo's chart is a real, working umbrella chart — `deploy.yaml` and its two committed secrets are gone
+- All 11 services deploy successfully from personal Docker Hub images, fully wired to their datastores
+- ArgoCD manages the dev environment declaratively, synced from the actual GitHub repo, auto-syncing with self-heal
+- A production Application exists but requires manual sync and isn't yet tracking a real release artifact
+
+## Lessons Learned
+- Before diagnosing a "why won't this container stay up" problem as a config issue, check for resource contention from something *unrelated* first — `docker ps -a` and `free -h` are cheap, and in this case the real fix was deleting an 11-month-old cluster, not anything in the chart.
+- A prior session's "nothing here" finding can be wrong if the check ran before a subsystem (here, Docker Desktop's WSL2 backend) had fully synced state — don't treat an old negative result as permanent truth without a quick re-check when circumstances changed.
+- `sudo` inside a non-interactive script invocation just hangs forever waiting for a password that will never come — prefer a user-local install path when one exists rather than fighting root access for a local dev tool.
+- Don't assume a vendored chart needs hand-wiring between services — render it and check what it actually produces first. These charts turned out to already be correctly wired for four of five integration points; only one (rabbitmq auth) was a real gap.
+- Public availability of specific container image tags isn't permanent, even for a major, widely-used vendor's images — a chart written a year or two ago can reference a tag that simply no longer resolves. Query the registry directly for what's currently available rather than assuming the original pin still works.
+- A values override can be silently ineffective if something else (here, an HPA) controls the same field through a different path — check the actual rendered/live object, not just that the override was accepted without error.
+- `OOMKilled` (exit code 137) and a generic crash loop look identical in `kubectl get pods` output; `kubectl describe pod`'s `Last State` block distinguishes them immediately and should be the first thing checked, not the last.
+
+---
+
+# 📊 Current Capabilities (as of Session 7)
 
 ## Done
 - Both repos on stable, corruption-free git, outside OneDrive sync
-- Dead files removed from both repos
-- Consolidated, single-source-of-truth CI pipeline authored **and verified with a fully green live run** for the app repo
-- Real unit tests running per service, including `cart`'s DynamoDB-dependent tests (skip-tests bug fixed, mvnw permissions fixed)
-- Secrets scanning (gitleaks), dual SAST (SonarCloud + Semgrep), per-language SCA, PR dependency review — all with correct, resolvable action references and correct credential scopes
-- All 11 image variants build, get scanned (Trivy), get an SBOM (Syft), get signed (cosign), and push successfully to Docker Hub
-- `repository_dispatch` successfully notifies the automation repo on every push to `main`
-- CodeQL scheduled scanning
-- SonarCloud project created and correctly keyed; `sonar-project.properties` matches the real project
-- Every GitHub Action pinned to a commit SHA (Semgrep-driven supply-chain hardening)
-- Semgrep, Trivy, govulncheck, and npm audit all running in report-only mode with findings visible in GitHub's code scanning tab / job logs
+- Consolidated, single-source-of-truth CI pipeline, verified with a fully green live run
+- Real unit tests running per service, all image variants build/scan/sign/push successfully
+- `repository_dispatch` fires successfully to the automation repo on every push to `main`
+- Local kind cluster + ArgoCD running and stable
+- Automation repo's chart is a real, working umbrella chart (11 vendored subcharts), `deploy.yaml` and its committed secrets are gone
+- All 11 services deploy and run correctly, fully wired end to end (`ui → catalog → mariadb` confirmed via an actual HTTP request, not just pod status)
+- ArgoCD manages the `revive-dev` environment declaratively from GitHub, auto-sync + self-heal
+- `revive-production` Application exists, manual-sync only, not yet tracking a real release
 
 ## Not Yet Done
-- No receiving workflow in the automation repo for `repository_dispatch` yet (the event fires successfully, but nothing there listens for it)
-- Automation repo's Helm chart is still the broken hand-flattened `deploy.yaml`, still with two committed base64 "secrets"
-- No kind/minikube cluster or ArgoCD installed yet
+- No receiving workflow in the automation repo for the `repository_dispatch` event yet — it fires, but nothing listens for it, so image tag bumps still require a manual chart edit
+- Two credentials in the chart are still plaintext-ish (base64-encoded, not encrypted) — mariadb/postgresql auth passwords ("testing") inherited from the vendored charts' defaults; Sealed Secrets remediation (planned since Session 1) hasn't happened yet
 - No NetworkPolicies, Pod Security Admission, or cluster-side signature verification yet
-- No DAST scanning yet (needs a live deployed target)
-- Old Jenkinsfiles in the automation repo (docker-compose-based deploy path) still present
-- Spring Boot Actuator fully exposed on `cart`/`orders`/`ui`; `load-generator` Kubernetes manifest missing `allowPrivilegeEscalation: false`; `checkout` service has no unit test coverage at all (only an untested-in-CI e2e spec)
-- Report-only findings (Semgrep, Trivy, govulncheck: 39, npm audit: 96) not yet triaged
+- No DAST scanning yet (needs a live deployed target — now exists, wasn't wired up this session)
+- Old Jenkinsfiles and `docker-compose.yml`-as-deploy-path artifacts in the automation repo still present
+- Report-only CI findings (Semgrep, Trivy, govulncheck: 39, npm audit: 96) not yet triaged
+- Spring Boot Actuator fully exposed on `cart`/`orders`/`ui`; `checkout` has no unit test coverage
+- `revive-production` Application not yet pointed at a real release artifact
 
 ---
 
 # 🚀 Planned Roadmap
 
 ## Short-Term (next few working sessions)
-- Triage the report-only findings (Semgrep, Trivy, govulncheck, npm audit) via the GitHub code scanning tab and each tool's own report: fix the Spring Boot Actuator over-exposure (`include: '*'`) in `cart`/`orders`/`ui`'s `application.yml`, add `securityContext.allowPrivilegeEscalation: false` to `do-it-yourself/src/load-generator/manifest.yml`, and decide on a remediation plan for the frozen npm/Go dependency baselines (39 + 96 findings) before flipping any of these gates to blocking
-- Write real unit test coverage for the `checkout` service (currently zero `*.spec.ts` files — `--passWithNoTests` is a documented gap, not a fix)
-- Convert at least one service's Dockerfile (catalog is the easiest — Go, straightforward multi-stage build) to actually compile from local source, since most services today just relabel AWS's pre-built images rather than shipping what CI tested
-- Stand up a local kind cluster and ArgoCD; fix the automation repo's Helm chart by turning it into an umbrella chart over the already-well-built (but currently unused) per-service charts; delete the broken `deploy.yaml`
-- Rotate the two exposed database credentials and replace the committed plaintext-ish secrets with Sealed Secrets
+- Wire the `repository_dispatch` → automation-repo receiving workflow so a commit in the app repo flows untouched-by-hand into a running pod in kind (the last piece of the CI→CD loop)
+- Rotate the mariadb/postgresql credentials still inherited from the vendored charts' defaults and replace them with Sealed Secrets
+- Triage the report-only findings (Semgrep, Trivy, govulncheck, npm audit): fix the Spring Boot Actuator over-exposure, decide on a remediation plan for the frozen npm/Go dependency baselines before flipping any gate to blocking
+- Write real unit test coverage for `checkout`
 
 ## Mid-Term
-- Wire the `repository_dispatch` → automation-repo receiving workflow so a commit in the app repo flows untouched-by-hand into a running pod in kind
 - Add NetworkPolicies (with an explicit note on kind's default CNI not enforcing them without Calico), Pod Security Admission labels on namespaces, and fix the `assets` service's inconsistent security context
-- Flip the Trivy scan from report-only to a real CRITICAL/HIGH gate once the initial finding baseline is triaged
-- Retire the automation repo's docker-compose-based deploy Jenkinsfile now that ArgoCD sync supersedes it
+- Flip Trivy/Semgrep/govulncheck/npm audit from report-only to real gates once each baseline is triaged
+- Retire the automation repo's docker-compose-based deploy Jenkinsfile now that ArgoCD sync is proven working
+- Convert at least one service's Dockerfile (catalog is easiest) to actually compile from local source instead of relabeling AWS's pre-built image
 
 ## Long-Term
-- OWASP ZAP baseline DAST scan against the running kind `ui` service (scheduled/manual, since it needs a live target)
+- OWASP ZAP baseline DAST scan against the running kind `ui` service (scheduled/manual)
 - Cluster-side cosign signature verification (admission-controller enforcement), not just sign-and-publish
-- Production promotion path: manual-sync ArgoCD Application gated by the semver release tag flow
-- Full README/documentation polish in both repos reflecting the finished architecture, replacing any remaining copy-pasted generic docs
+- Production promotion path: point `revive-production`'s Application at a real semver release tag, gated by the existing `validate-release-tag` CI job
+- Full README/documentation polish in both repos reflecting the finished architecture
 - Consider whether a low-cost managed Kubernetes target (vs. local kind) is worth adding for a more "always-on" portfolio demo
 
 ---

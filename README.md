@@ -135,12 +135,13 @@ cyprien-ecommerce-project/
 
 ## ✅ Current Capabilities
 
-See [`docs/ENGINEERING_JOURNAL.md`](docs/ENGINEERING_JOURNAL.md#-current-capabilities-as-of-session-6) for the full, kept-up-to-date snapshot. As of the latest session:
+See [`docs/ENGINEERING_JOURNAL.md`](docs/ENGINEERING_JOURNAL.md#-current-capabilities-as-of-session-7) for the full, kept-up-to-date snapshot. As of the latest session:
 
 - Consolidated CI pipeline, replacing three overlapping legacy Jenkinsfiles — **verified with a fully green, end-to-end run**
 - Real per-service unit tests, including `cart`'s DynamoDB-dependent tests (a legacy test-skipping bug is fixed)
 - Secrets scanning, dual SAST, per-language SCA, container image scanning, SBOM generation, and image signing all running on every push; all 11 image variants build and push successfully to Docker Hub
 - `repository_dispatch` successfully notifies the automation repo on every push to `main`
+- **Full deployment pipeline working end to end**: a local kind cluster + ArgoCD run all 11 services from personal Docker Hub images, managed declaratively from the automation repo — see that repo's README for the chart/GitOps details
 - Next up: kind/ArgoCD bring-up and secrets remediation in the automation repo — see the journal's roadmap
 
 ---
