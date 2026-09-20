@@ -321,6 +321,13 @@ After the image and replica fixes, `carts` and `orders` kept crash-looping — b
 - A values override can be silently ineffective if something else (here, an HPA) controls the same field through a different path — check the actual rendered/live object, not just that the override was accepted without error.
 - `OOMKilled` (exit code 137) and a generic crash loop look identical in `kubectl get pods` output; `kubectl describe pod`'s `Last State` block distinguishes them immediately and should be the first thing checked, not the last.
 
+## 📸 Evidence
+- [The storefront actually rendering — `ui → catalog → mariadb` confirmed end to end](../images/screenshots/s7-app-storefront.png)
+- [ArgoCD Applications list — `revive-dev`, Healthy/Synced](../images/screenshots/s7-argocd-applications-list.png)
+- Full resource tree, scrolled through (ConfigMaps → Secrets → Services → Deployments/Pods → StatefulSets → NetworkPolicies/PDBs → RBAC):
+  [1](../images/screenshots/s7-argocd-tree-1-configmaps.png) · [2](../images/screenshots/s7-argocd-tree-2-secrets.png) · [3](../images/screenshots/s7-argocd-tree-3-services-a.png) · [4](../images/screenshots/s7-argocd-tree-4-services-b.png) · [5](../images/screenshots/s7-argocd-tree-5-deployments-pods.png) · [6](../images/screenshots/s7-argocd-tree-6-deployments-statefulsets.png) · [7](../images/screenshots/s7-argocd-tree-7-statefulsets.png) · [8](../images/screenshots/s7-argocd-tree-8-networkpolicies-pdbs.png) · [9](../images/screenshots/s7-argocd-tree-9-poddisruptionbudgets-rbac.png)
+  - Shot 5 caught `orders` live in `crashloopbackoff` mid-sync — direct visual corroboration of the OOMKilled issue described above, not staged after the fact.
+
 ---
 
 # 📊 Current Capabilities (as of Session 7)
