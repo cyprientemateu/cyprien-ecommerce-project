@@ -1,10 +1,12 @@
 # 🛍️ 🚀 Revive E-Commerce Platform — App & CI
 
+> **Status:** Active, in-progress project. Built incrementally; see the engineering journal for session-by-session history.
+
 A microservices e-commerce application (fork of AWS's `retail-store-sample-app`), rebuilt with a self-owned, security-first CI pipeline as a DevSecOps portfolio project. This repo owns the application source and GitHub Actions CI; its companion repo, [`cyprien-ecommerce-project-automation`](https://github.com/cyprientemateu/cyprien-ecommerce-project-automation), owns the Helm chart and GitOps/CD side.
 
 ## 🧭 Project Overview
 
-This project was originally built and run on a former organization's infrastructure (self-hosted Jenkins, self-hosted SonarQube, that org's Slack workspace). It's being rebuilt end to end on personal resources — GitHub Actions, SonarCloud, a personal Docker Hub account, a local Kubernetes cluster — and re-engineered with a genuine DevSecOps mindset, motivated by the maintainer's ongoing cybersecurity certification track.
+This project was originally built during a DevOps training program on the program's shared infrastructure (self-hosted Jenkins, SonarQube, Slack). It's being rebuilt end to end on personal resources — GitHub Actions, SonarCloud, a personal Docker Hub account, a local Kubernetes cluster — and re-engineered with a genuine DevSecOps mindset, motivated by the maintainer's ongoing cybersecurity certification track.
 
 It has evolved from a set of hand-maintained Jenkins pipelines into:
 - A single, consolidated GitHub Actions CI pipeline (replacing three overlapping Jenkinsfiles)
@@ -25,14 +27,16 @@ It has evolved from a set of hand-maintained Jenkins pipelines into:
 
 ### ✅ DevSecOps Tooling
 - **Secrets scanning:** gitleaks, gating every other job
-- **SAST:** SonarCloud + Semgrep (`p/ci` + `p/owasp-top-ten`)
-- **SCA:** govulncheck (Go), OWASP Dependency-Check (Maven), `npm audit` (Node), GitHub-native dependency review on PRs
-- **Container security:** Trivy image scanning + Syft CycloneDX SBOM generation on every build
+- **SAST:** SonarCloud (enforcing) + Semgrep (`p/ci` + `p/owasp-top-ten`, **report-only** for now)
+- **SCA:** govulncheck (Go), OWASP Dependency-Check (Maven), and `npm audit` (Node) all run **report-only**; GitHub-native dependency review on PRs is enforcing
+- **Container security:** Trivy image scanning (**report-only**) + Syft CycloneDX SBOM generation on every build
 - **Supply chain:** keyless image signing with cosign
 - **CodeQL:** scheduled + PR-triggered, kept out of the main CI path to avoid slowing every push
 
+> Semgrep, Trivy, govulncheck, OWASP Dependency-Check, and npm audit are deliberately non-blocking right now — each has a real backlog of pre-existing findings to triage first. See the journal's roadmap for the plan to flip them to hard gates.
+
 ### ✅ GitOps/CD (companion repo)
-- Helm chart deployed via ArgoCD onto a local kind/minikube cluster
+- Helm chart deployed via ArgoCD onto a local kind cluster
 - Environment-overlay values (`dev` auto-syncs, `production` requires manual approval)
 - `repository_dispatch` handoff from this repo's CI instead of a broad cross-repo push token
 
@@ -55,7 +59,7 @@ It has evolved from a set of hand-maintained Jenkins pipelines into:
 └───────────────┬───────────────┘                                          │ sync
                 │ push images                                              ▼
                 ▼                                                ┌───────────────────────┐
-       ┌──────────────────┐          pulls images                │ kind / minikube        │
+       ┌──────────────────┐          pulls images                │ kind                   │
        │   Docker Hub      │◀─────────────────────────────────── │ ui, catalog, cart,     │
        │ cyprientemateu/*  │                                     │ orders, checkout,      │
        └──────────────────┘                                     │ assets + datastores    │
@@ -69,9 +73,11 @@ It has evolved from a set of hand-maintained Jenkins pipelines into:
 | `ui` | Java / Spring Boot | — | Storefront web front-end |
 | `catalog` | Go | MariaDB | Product catalog API |
 | `cart` | Java / Spring Boot | DynamoDB (local) | Shopping cart API |
-| `orders` | Java / Spring Boot | MariaDB + RabbitMQ | Order processing API |
+| `orders` | Java / Spring Boot | PostgreSQL + RabbitMQ | Order processing API |
 | `checkout` | Node / NestJS | Redis | Checkout orchestration |
 | `assets` | Static / nginx | — | Static asset serving |
+
+> **Naming note:** the cart service's source directory and Docker image are `cart` (singular), but its Helm chart and Kubernetes resources are named `carts` (plural) — a naming split inherited from the original AWS sample app, not a typo.
 
 ---
 
@@ -83,7 +89,7 @@ It has evolved from a set of hand-maintained Jenkins pipelines into:
 - **Container security:** Trivy, Syft (SBOM), cosign (signing)
 - **Secrets scanning:** gitleaks
 - **Registry:** Docker Hub
-- **CD:** Helm, ArgoCD, kind/minikube (see companion automation repo)
+- **CD:** Helm, ArgoCD, kind (see companion automation repo)
 - **App stack:** Go, Java/Spring Boot, Node/NestJS, MariaDB, DynamoDB, RabbitMQ, Redis
 
 ---
@@ -129,7 +135,7 @@ cyprien-ecommerce-project/
 4. **Analyze** — SonarCloud and Semgrep run SAST; per-language SCA tools check dependencies.
 5. **Build & secure** — on push to `main`/tags, each service image is built, scanned with Trivy, given a Syft SBOM, and signed with cosign, then pushed to Docker Hub.
 6. **Hand off** — a `repository_dispatch` event notifies the automation repo with the new image tag and target environment.
-7. **Deploy** — the automation repo's own workflow updates its Helm values and lets ArgoCD sync the change onto the cluster.
+7. **Deploy** — image tag bumps in the automation repo's Helm values are currently manual; a receiving workflow that consumes the `repository_dispatch` event and updates `values-dev.yaml` automatically is planned but not yet built. Once a tag is bumped (by hand or by that future workflow), ArgoCD syncs the change onto the cluster.
 
 ---
 
@@ -142,7 +148,7 @@ See [`docs/ENGINEERING_JOURNAL.md`](docs/ENGINEERING_JOURNAL.md#-current-capabil
 - Secrets scanning, dual SAST, per-language SCA, container image scanning, SBOM generation, and image signing all running on every push; all 11 image variants build and push successfully to Docker Hub
 - `repository_dispatch` successfully notifies the automation repo on every push to `main`
 - **Full deployment pipeline working end to end**: a local kind cluster + ArgoCD run all 11 services from personal Docker Hub images, managed declaratively from the automation repo — see that repo's README for the chart/GitOps details
-- Next up: kind/ArgoCD bring-up and secrets remediation in the automation repo — see the journal's roadmap
+- Next up: the `repository_dispatch` receiving workflow (image tag bumps are still manual), Sealed Secrets for the two remaining plaintext-ish datastore credentials, and triaging the report-only findings — see the journal's roadmap
 
 ---
 
@@ -178,8 +184,12 @@ Rather than giving this repo's CI a token that can `git push` into the automatio
 
 ## 🚀 Future Improvements
 
+- Wire the `repository_dispatch` receiving workflow in the automation repo so image tag bumps stop being manual
+- Rotate the mariadb/postgresql credentials still inherited from the vendored charts' defaults and replace them with Sealed Secrets
+- Triage the report-only findings (Semgrep, Trivy, govulncheck, OWASP Dependency-Check, npm audit) and decide a remediation plan before flipping any of them to blocking
+- Fix the Spring Boot Actuator over-exposure (`include: '*'`) on `cart`/`orders`/`ui`
+- Write real unit test coverage for `checkout` (currently zero `*.spec.ts` files)
 - Build at least one service's Docker image from local source rather than relabeling a pre-built upstream image
-- Flip Trivy from report-only to a real CRITICAL/HIGH gate once the initial finding baseline is triaged
 - Add cluster-side cosign signature verification, not just sign-and-publish
 - OWASP ZAP baseline DAST scan against the running app
 - Full roadmap: see [`docs/ENGINEERING_JOURNAL.md`](docs/ENGINEERING_JOURNAL.md#-planned-roadmap)

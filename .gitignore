@@ -1,0 +1,23 @@
+# Secrets / local config
+.env
+*.tfvars
+kubeconfig
+kubeconfig.yaml
+*-kubeconfig.yaml
+
+# Java / Maven build output
+target/
+
+# Node
+node_modules/
+
+# Go
+/bin/
+
+# Editors
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

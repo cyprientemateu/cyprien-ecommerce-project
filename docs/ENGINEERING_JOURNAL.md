@@ -22,27 +22,27 @@ This file is updated whenever a phase completes or a meaningful engineering deci
 
 # 📌 Project Summary
 
-Revive is a microservices e-commerce app (fork of AWS's `retail-store-sample-app`) with six services — `ui`, `catalog`, `cart`, `orders`, `checkout`, `assets` — each with its own datastore. It was originally built and operated on a former organization's infrastructure (self-hosted Jenkins, self-hosted SonarQube, that org's Slack workspace). This rebuild moves the entire delivery pipeline onto personal resources and layers in a genuine DevSecOps posture, motivated by the maintainer's ongoing cybersecurity certification track — the goal is a pipeline that demonstrates security engineering judgment, not just a restored CI/CD pipeline.
+Revive is a microservices e-commerce app (fork of AWS's `retail-store-sample-app`) with six services — `ui`, `catalog`, `cart`, `orders`, `checkout`, `assets` — each with its own datastore. It was originally built during a DevOps training program on the program's shared infrastructure (self-hosted Jenkins, SonarQube, Slack). This rebuild moves the entire delivery pipeline onto personal resources and layers in a genuine DevSecOps posture, motivated by the maintainer's ongoing cybersecurity certification track — the goal is a pipeline that demonstrates security engineering judgment, not just a restored CI/CD pipeline.
 
 **Decisions locked in before implementation began:**
 
 | Decision | Choice | Why |
 |---|---|---|
 | CI platform | GitHub Actions | No self-hosted Jenkins server to maintain |
-| CD target | Local Kubernetes (kind/minikube) + ArgoCD | No cloud spend required for a portfolio/learning deployment |
+| CD target | Local Kubernetes (kind) + ArgoCD | No cloud spend required for a portfolio/learning deployment |
 | Security depth | Full DevSecOps pass | SAST + SCA + image scanning + secrets scanning + SBOM + DAST, not a checkbox pass |
-| Static analysis | SonarCloud | Free for public repos, replaces the org's self-hosted SonarQube |
+| Static analysis | SonarCloud | Free for public repos, replaces the training program's self-hosted SonarQube |
 
 ---
 
 # SESSION 1 — 2026-09-04 — Discovery, Risk Assessment & Planning
 
 ## Objective
-Before changing anything, understand exactly what the existing two-repo pipeline does, what's tied to the former organization, and what a rebuilt, security-conscious version should look like.
+Before changing anything, understand exactly what the existing two-repo pipeline does, what's tied to the training program's shared infrastructure, and what a rebuilt, security-conscious version should look like.
 
 ## What I Did
 - Read through both repositories end to end: every Jenkinsfile (6 total across both repos — 3 evolving variants in each), both `docker-compose.yml` files, the Helm chart in the automation repo, the vendored-but-unused per-service Helm charts, `sonar-project.properties`, and both READMEs.
-- Identified every resource still pointing at the former organization (self-hosted SonarQube host, one org-owned Docker Hub image reference, an org Slack channel).
+- Identified every resource still pointing at the training program's infrastructure (self-hosted SonarQube host, one shared Docker Hub image reference, a shared Slack channel).
 - Discovered the automation repo's `chart/templates/deploy.yaml` is not a real Helm template — it's a one-time hand-flattened dump of ~6 services' manifests, with only image-tag lines manually edited to look templated. Its own `_helpers.tpl` label helpers are defined but never actually used.
 - Found two real base64-encoded Kubernetes `Secret` objects (`catalog-db`, `orders-db` passwords) committed directly to that file.
 - Found a bug in the existing Jenkins pipeline: `mvn test -DskipTests=true` for the cart and orders services — meaning their unit tests had never actually been executed by CI, only compiled.
@@ -52,7 +52,7 @@ Before changing anything, understand exactly what the existing two-repo pipeline
 The vendored `do-it-yourself/helm-chart/<service>/` directory already contains well-built, correctly parameterized per-service Helm charts (real templates, security contexts with `cap_drop: ALL` + `readOnlyRootFilesystem` + `runAsNonRoot`, resource limits) — but they're unused and still point at a stale third-party image (`prinsoo/revive-app`). This became the anchor decision for the CD rebuild: repoint and reuse these charts as umbrella-chart dependencies, rather than hand-writing new templates from scratch.
 
 ## Decisions Made
-Confirmed with the maintainer: GitHub Actions for CI, local kind/minikube + ArgoCD for CD, a full DevSecOps tooling pass, and SonarCloud for static analysis (see summary table above).
+Decided on: GitHub Actions for CI, a local kind cluster + ArgoCD for CD, a full DevSecOps tooling pass, and SonarCloud for static analysis (see summary table above).
 
 ## Capabilities at this point
 - **None changed yet** — this was a read-only discovery and planning session. Both repos still ran (in principle) on the old Jenkins pipelines, still had org-tied resources, and still had the two committed secrets.
@@ -140,7 +140,7 @@ Authored `.github/workflows/ci.yml` consolidating `Jenkinsfile`, `Jenkinsfile3`,
 
 Also added `.github/workflows/codeql.yml` as a separate, lighter-weight scan (PR + weekly schedule) so CodeQL doesn't add latency to every push.
 
-Updated `sonar-project.properties`: removed `sonar.host.url` (the former org's self-hosted SonarQube), added a `sonar.organization` placeholder for SonarCloud.
+Updated `sonar-project.properties`: removed `sonar.host.url` (the training program's self-hosted SonarQube), added a `sonar.organization` placeholder for SonarCloud.
 
 Deleted `Jenkinsfile`, `Jenkinsfile3`, `Jenkinsfile5` — fully superseded.
 
@@ -255,17 +255,17 @@ failed to fetch oauth token: ... 401 Unauthorized: access token has insufficient
 Login succeeded (the base image pull worked fine), only the push was rejected — the signature of a Docker Hub access token created with **Read-only** scope rather than **Read & Write**. Fixed on Docker Hub's side by regenerating `DOCKERHUB_TOKEN` with write access. Not a workflow bug; a credential-provisioning gap from initial secret setup.
 
 ### `trigger-cd-update` — wrong PAT permission (my error)
-`repository_dispatch` failed: `Error: Resource not accessible by personal access token`. Root cause: my original guidance for `CD_REPO_DISPATCH_TOKEN` (back when repo secrets were first set up) specified `Actions: Read and write` — but the `POST /repos/{owner}/{repo}/dispatches` endpoint actually requires **Contents: Read and write** on a fine-grained PAT. `Actions` permission covers workflow-run operations (re-run, cancel, read logs), not triggering dispatch events. Fixed by editing the token's permissions on GitHub (repository access stayed scoped to just the automation repo; only the permission changed, not the token string).
+`repository_dispatch` failed: `Error: Resource not accessible by personal access token`. Root cause: I originally created the `CD_REPO_DISPATCH_TOKEN` with `Actions: Read and write` — but the `POST /repos/{owner}/{repo}/dispatches` endpoint actually requires **Contents: Read and write** on a fine-grained PAT. `Actions` permission covers workflow-run operations (re-run, cancel, read logs), not triggering dispatch events. Fixed by editing the token's permissions on GitHub (repository access stayed scoped to just the automation repo; only the permission changed, not the token string).
 
 ### `SCA (dependency review, PRs only)` — skip, not a bug
-User asked why this job showed as skipped. By design: `if: github.event_name == 'pull_request'` — the GitHub `dependency-review-action` diffs a PR's dependency changes against its base branch, which only makes sense on an actual pull request, not a direct push to `main`. It will run for real on the next PR opened against `main`.
+This job shows as skipped by design: `if: github.event_name == 'pull_request'` — the GitHub `dependency-review-action` diffs a PR's dependency changes against its base branch, which only makes sense on an actual pull request, not a direct push to `main`. It will run for real on the next PR opened against `main`.
 
 ## Result
 **First fully green run, end to end**: secrets scan → all 5 services' unit tests → both SAST tools → all SCA jobs (report-only ones included) → all 11 image builds, scans, SBOMs, and signings → the `repository_dispatch` notification to the automation repo. Phase 1 (GitHub Actions CI migration) is complete and verified, not just authored.
 
 ## Lessons Learned
 - Docker Hub access tokens are scoped at creation (Read-only / Read & Write / Read-Write-Delete) — a token that successfully authenticates can still be rejected on `push` specifically if scoped read-only. The "401 insufficient scopes" error text is the tell, distinct from a plain "unauthorized" login failure.
-- GitHub fine-grained PAT permission names don't always map intuitively to REST API operations — `repository_dispatch` sits under **Contents**, not **Actions**. When granting a PAT for a specific API call, check that endpoint's documented required permission directly rather than guessing from the feature area it seems to belong to. (This was my own mistake in the original secret-setup guidance — worth remembering for the next token this project needs.)
+- GitHub fine-grained PAT permission names don't always map intuitively to REST API operations — `repository_dispatch` sits under **Contents**, not **Actions**. I originally created the token with `Actions: Read and write`, but the dispatches endpoint requires `Contents: Read and write`. When granting a PAT for a specific API call, check that endpoint's documented required permission directly rather than guessing from the feature area it seems to belong to — worth remembering for the next token this project needs.
 - A job showing "Skipped" in the Actions UI isn't inherently a signal something's wrong — check the job's `if:` condition against what actually triggered the run before assuming it's broken.
 
 ## 📸 Evidence
@@ -285,7 +285,7 @@ Stand up a local Kubernetes cluster and ArgoCD, turn the automation repo's broke
 Confirmed `kind` was installed (in the `Ubuntu-24.04` WSL distro, from a prior session) but no cluster existed. Installed `helm` there too — the official install script's `sudo cp` step hung indefinitely (no TTY for a password prompt in a non-interactive WSL invocation); switched to a user-local install (`~/.local/bin/helm`, no root needed) instead.
 
 ### An 11-month-old forgotten kind cluster was starving WSL2 of memory
-`kind create cluster --name revive` succeeded, but the resulting `revive-control-plane` container immediately went into a crash/restart loop, and ArgoCD's install (also done this session, via `kubectl apply --server-side` — plain `apply` failed on one CRD exceeding etcd's 256KB last-applied-configuration annotation limit) landed on top of an already-strained VM. Root cause: a second, completely unrelated `kind-control-plane` container had been running for **11 months**, invisible in an earlier session's check (Docker Desktop's WSL2 backend likely hadn't finished syncing state that time). Two Kubernetes control planes in a WSL2 VM capped at 5.8GB total memory left neither one stable. Asked before touching it — confirmed it was safe to delete, freed ~1GB, and the crash loop stopped immediately.
+`kind create cluster --name revive` succeeded, but the resulting `revive-control-plane` container immediately went into a crash/restart loop, and ArgoCD's install (also done this session, via `kubectl apply --server-side` — plain `apply` failed on one CRD exceeding etcd's 256KB last-applied-configuration annotation limit) landed on top of an already-strained VM. Root cause: a second, completely unrelated `kind-control-plane` container had been running for **11 months**, invisible in an earlier session's check (Docker Desktop's WSL2 backend likely hadn't finished syncing state that time). Two Kubernetes control planes in a WSL2 VM capped at 5.8GB total memory left neither one stable. Confirmed the old cluster was unused, then deleted it — freed ~1GB, and the crash loop stopped immediately.
 
 ### Repointed and vendored the per-service charts
 Repointed all 6 app-service charts under `do-it-yourself/helm-chart/` (this repo) from the stale `prinsoo/revive-app` to the real `cyprientemateu/a1cyprien_do_it_yourself_<service>` images. Then, in the automation repo, copied all 11 per-service chart directories (6 app + 5 datastore: mariadb, dynamodb-local, redis, postgresql, rabbitmq) verbatim into `chart/charts/` as plain vendored subdirectories — Helm auto-discovers any chart under `charts/`, no `dependencies:` block or `helm dependency update` network resolution needed, so a bare `git clone` of the automation repo alone is enough to render or install it. Deleted the old hand-flattened `templates/deploy.yaml` and its unused `_helpers.tpl`, and collapsed four old values files down to `values.yaml` + `values-dev.yaml` + `values-production.yaml`.
