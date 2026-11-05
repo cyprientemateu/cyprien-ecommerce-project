@@ -73,7 +73,7 @@ It has evolved from a set of hand-maintained Jenkins pipelines into:
 | `ui` | Java / Spring Boot | — | Storefront web front-end |
 | `catalog` | Go | MariaDB | Product catalog API |
 | `cart` | Java / Spring Boot | DynamoDB (local) | Shopping cart API |
-| `orders` | Java / Spring Boot | PostgreSQL + RabbitMQ | Order processing API |
+| `orders` | Java / Spring Boot | MariaDB + RabbitMQ | Order processing API |
 | `checkout` | Node / NestJS | Redis | Checkout orchestration |
 | `assets` | Static / nginx | — | Static asset serving |
 
@@ -185,7 +185,7 @@ Rather than giving this repo's CI a token that can `git push` into the automatio
 ## 🚀 Future Improvements
 
 - Wire the `repository_dispatch` receiving workflow in the automation repo so image tag bumps stop being manual
-- Rotate the mariadb/postgresql credentials still inherited from the vendored charts' defaults and replace them with Sealed Secrets
+- Rotate the MariaDB credentials still inherited from the vendored charts' defaults and replace them with Sealed Secrets
 - Triage the report-only findings (Semgrep, Trivy, govulncheck, OWASP Dependency-Check, npm audit) and decide a remediation plan before flipping any of them to blocking
 - Fix the Spring Boot Actuator over-exposure (`include: '*'`) on `cart`/`orders`/`ui`
 - Write real unit test coverage for `checkout` (currently zero `*.spec.ts` files)

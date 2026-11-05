@@ -288,13 +288,13 @@ Confirmed `kind` was installed (in the `Ubuntu-24.04` WSL distro, from a prior s
 `kind create cluster --name revive` succeeded, but the resulting `revive-control-plane` container immediately went into a crash/restart loop, and ArgoCD's install (also done this session, via `kubectl apply --server-side` — plain `apply` failed on one CRD exceeding etcd's 256KB last-applied-configuration annotation limit) landed on top of an already-strained VM. Root cause: a second, completely unrelated `kind-control-plane` container had been running for **11 months**, invisible in an earlier session's check (Docker Desktop's WSL2 backend likely hadn't finished syncing state that time). Two Kubernetes control planes in a WSL2 VM capped at 5.8GB total memory left neither one stable. Confirmed the old cluster was unused, then deleted it — freed ~1GB, and the crash loop stopped immediately.
 
 ### Repointed and vendored the per-service charts
-Repointed all 6 app-service charts under `do-it-yourself/helm-chart/` (this repo) from the stale `prinsoo/revive-app` to the real `cyprientemateu/a1cyprien_do_it_yourself_<service>` images. Then, in the automation repo, copied all 11 per-service chart directories (6 app + 5 datastore: mariadb, dynamodb-local, redis, postgresql, rabbitmq) verbatim into `chart/charts/` as plain vendored subdirectories — Helm auto-discovers any chart under `charts/`, no `dependencies:` block or `helm dependency update` network resolution needed, so a bare `git clone` of the automation repo alone is enough to render or install it. Deleted the old hand-flattened `templates/deploy.yaml` and its unused `_helpers.tpl`, and collapsed four old values files down to `values.yaml` + `values-dev.yaml` + `values-production.yaml`.
+Repointed all 6 app-service charts under `do-it-yourself/helm-chart/` (this repo) from the stale `prinsoo/revive-app` to the real `cyprientemateu/a1cyprien_do_it_yourself_<service>` images. Then, in the automation repo, copied all 11 per-service chart directories (6 app + 5 datastore: mariadb, dynamodb-local, redis, postgresql, rabbitmq — the postgresql one was later replaced with a second MariaDB copy, see Session 8) verbatim into `chart/charts/` as plain vendored subdirectories — Helm auto-discovers any chart under `charts/`, no `dependencies:` block or `helm dependency update` network resolution needed, so a bare `git clone` of the automation repo alone is enough to render or install it. Deleted the old hand-flattened `templates/deploy.yaml` and its unused `_helpers.tpl`, and collapsed four old values files down to `values.yaml` + `values-dev.yaml` + `values-production.yaml`.
 
 ### The datastore subcharts were already correctly pre-wired — good news I almost second-guessed
-Expected to need to hand-wire hostnames between the app charts and the Bitnami-based datastore subcharts (e.g. catalog → its MariaDB). Checked instead of assuming, and found the original chart author had already done this: catalog's Go binary defaults `DB_ENDPOINT` to `catalog-db:3306` in code, and the mariadb subchart's `primary.service.name` value is already hardcoded to `"catalog-db"` — same exact-match pattern for orders-db/postgresql (`orders-db`), checkout-db/redis (`checkout-redis`, via `master.service.name`, independent of replication architecture), and carts-db/dynamodb-local (`carts-db`, via a direct `app_name` value). Confirmed via `helm template` + a small script parsing the rendered Service objects rather than trusting my own reading of nested Bitnami values files. The one real gap: rabbitmq's default `auth.username` ("orders_user") doesn't match what the orders Spring app actually connects as (Spring's own default, `guest`/`guest`, since orders sets no override) — fixed with a values override rather than templating changes.
+Expected to need to hand-wire hostnames between the app charts and the Bitnami-based datastore subcharts (e.g. catalog → its MariaDB). Checked instead of assuming, and found the original chart author had already done this: catalog's Go binary defaults `DB_ENDPOINT` to `catalog-db:3306` in code, and the mariadb subchart's `primary.service.name` value is already hardcoded to `"catalog-db"` — same exact-match pattern for orders-db (`orders-db`; **correction, Session 8: this was a PostgreSQL chart, which turned out to be the wrong database for the `orders` image — see Session 8**), checkout-db/redis (`checkout-redis`, via `master.service.name`, independent of replication architecture), and carts-db/dynamodb-local (`carts-db`, via a direct `app_name` value). Confirmed via `helm template` + a small script parsing the rendered Service objects rather than trusting my own reading of nested Bitnami values files. The one real gap: rabbitmq's default `auth.username` ("orders_user") doesn't match what the orders Spring app actually connects as (Spring's own default, `guest`/`guest`, since orders sets no override) — fixed with a values override rather than templating changes.
 
 ### Bitnami pulled the exact image tags these charts pin
-First real deploy attempt: `mariadb`, `postgresql`, `redis`, and `rabbitmq` all failed with `ImagePullBackOff` — `docker.io/bitnami/mariadb:11.2.2-debian-11-r6: not found`. This is Broadcom's 2025 change to Bitnami's free container images: older/specific tags were pulled from the public `bitnami/*` Docker Hub namespace. A community-run `bitnamilegacy/*` archive exists, but only kept newer snapshots than what these charts originally pinned — queried Docker Hub's API directly for what's actually available and repointed all four to the closest current tag (`mariadb:11.8.3`, `postgresql:17.6.0`, `redis:8.2.1`, `rabbitmq:4.1.3`) rather than guessing.
+First real deploy attempt: `mariadb`, `postgresql`, `redis`, and `rabbitmq` all failed with `ImagePullBackOff` — `docker.io/bitnami/mariadb:11.2.2-debian-11-r6: not found`. This is Broadcom's 2025 change to Bitnami's free container images: older/specific tags were pulled from the public `bitnami/*` Docker Hub namespace. A community-run `bitnamilegacy/*` archive exists, but only kept newer snapshots than what these charts originally pinned — queried Docker Hub's API directly for what's actually available and repointed all four to the closest current tag (`mariadb:11.8.3`, `postgresql:17.6.0`, `redis:8.2.1`, `rabbitmq:4.1.3`) rather than guessing. (The PostgreSQL repoint became moot in Session 8, when that chart was replaced.)
 
 ### The HPA default was silently overriding `replicaCount`
 Set `replicaCount: 1` in `values-dev.yaml` for every app service to keep this light on a laptop-hosted kind cluster — `catalog` obeyed it, the other five didn't, still coming up with 3 replicas each. Root cause: those five default `autoscaling.enabled: true` with `minReplicas: 3` (`catalog` is the one exception, already `false`), and the Deployment template omits the `replicas:` field entirely whenever autoscaling is enabled, handing control to the HPA instead — which kind has no `metrics-server` for anyway, so it was just stuck at its floor. Disabled autoscaling in the dev overlay rather than leaving it non-functional.
@@ -308,7 +308,7 @@ After the image and replica fixes, `carts` and `orders` kept crash-looping — b
 ## Capabilities at this point
 - A local kind cluster (`revive`) and ArgoCD are running, both confirmed stable after resolving the memory contention
 - The automation repo's chart is a real, working umbrella chart — `deploy.yaml` and its two committed secrets are gone
-- All 11 services deploy successfully from personal Docker Hub images, fully wired to their datastores
+- All 11 services deploy successfully from personal Docker Hub images (**correction, Session 8: "fully wired to their datastores" was overstated — `orders` was crash-looping against a database its image cannot talk to, and I only verified `ui → catalog → mariadb`**)
 - ArgoCD manages the dev environment declaratively, synced from the actual GitHub repo, auto-syncing with self-heal
 - A production Application exists but requires manual sync and isn't yet tracking a real release artifact
 
@@ -330,7 +330,58 @@ After the image and replica fixes, `carts` and `orders` kept crash-looping — b
 
 ---
 
-# 📊 Current Capabilities (as of Session 7)
+# SESSION 8 — 2026-11-05 — Manual Rebuild: `orders` Was Never Actually Healthy
+
+## Objective
+Rebuild the cluster and deploy by hand, command by command, to re-learn Kubernetes instead of relying on ArgoCD to hide the mechanics. Not a planned debugging session — it turned up a real bug that Session 7 had missed.
+
+## What I Did
+
+### A `1/1 Running` pod that wasn't healthy
+After `helm install` into a fresh `revive-dev` namespace, `orders` kept restarting. The Session 7 ladder worked, in order:
+1. `kubectl describe pod` → `Last State: Terminated`, `Reason: Error`, `Exit Code: 1` — not `OOMKilled`, so not the Session 7 memory problem.
+2. `kubectl logs --previous` → the last `Caused by:` line said no suitable JDBC driver was found for `jdbc:postgresql://orders-db:5432/orders`.
+
+### Root cause: the chart didn't match the app
+The `orders` image (upstream `retail-store-sample-orders:0.2.0`) ships only the MariaDB JDBC driver. `pom.xml` lists only `org.mariadb.jdbc:mariadb-java-client`, and `docker-compose.yml` runs it with the `mysql` profile against MariaDB. The Helm chart I inherited pointed it at PostgreSQL. It could never have worked. My first hypothesis — CPU starvation — was wrong; I had guessed before reading the log.
+
+### Fix
+Replaced the PostgreSQL `orders-db` chart with a second copy of the MariaDB chart, in both repos so they cannot drift:
+- Chart renamed to `orders-mariadb` so its resource names and its values key do not collide with `catalog-db`'s `mariadb` (Bitnami charts derive names from release + chart name). Its Service is still named `orders-db`, which the app expects.
+- `orders` ConfigMap: profile `mysql,rabbitmq`, separate `SPRING_DATASOURCE_WRITER_*` / `_READER_*` URLs (`jdbc:mariadb://orders-db:3306/orders`) — the app has two persistence units, `writer` and `reader`.
+- `orders` Secret: matching `WRITER`/`READER` username and password keys.
+- Umbrella `values.yaml`: dropped the `postgresql:` block, added an `orders-mariadb:` image repoint to `bitnamilegacy/mariadb:11.8.3`.
+
+### Verification — done properly this time
+- Rendered with `helm template` first: no PostgreSQL left, both MariaDB StatefulSets and Services present.
+- Live: `Started OrdersApplication in 184.691 seconds`, with `HikariPool-1` and `HikariPool-2` (writer and reader) both `Start completed`, and **0 restarts** after nearly 4 minutes.
+- `GET /actuator/health` → `{"status":"UP"}`; `GET /orders` → `[]` (a real read through the database).
+
+## Capabilities at this point
+- `orders` runs healthy on MariaDB; the chart in both repos now matches what the image actually supports
+- All 11 services have now actually been verified running, not just scheduled
+
+## Lessons Learned
+- **`1/1 Running` is not health.** None of the app charts define readiness probes, so Kubernetes reports a pod ready the moment its container starts — here, for the full 3 minutes the JVM was still booting, and for as long as it was crash-looping between restarts. Verify with the real endpoint (`/actuator/health`), not the pod list.
+- **Verify over a long enough window.** Crash-loop backoff reaches 5 minutes, so a 30-second look can miss a failure entirely. The old crash came about 95 seconds into startup; the check that mattered was after that point.
+- **Read the log before forming a theory.** I guessed CPU starvation; the log said "no suitable driver" in one line.
+- **My Session 7 claim that all 11 services were "fully wired" was wrong.** I had verified one path (`ui → catalog → mariadb`) and generalized it. State what was actually tested.
+- **A ConfigMap or Secret change does not restart pods.** There is no checksum annotation on the Deployments, so after `helm upgrade` the running pods kept the old config until `kubectl rollout restart`. Chart-level fix is on the roadmap.
+- **Check that a chart matches the app, not just that it renders.** The PostgreSQL chart rendered and deployed cleanly. Only the application's own dependency list (`pom.xml`) showed it was wrong.
+- A 100m CPU limit makes the JVM start in about 3 minutes. Fine for a demo cluster; it is also exactly the situation readiness probes exist for.
+
+## 📸 Evidence
+- [A completed checkout in the browser — order confirmation page, personal email redacted](../images/screenshots/s8-checkout-order-confirmation.png) — the order number shown here (`20392d6c-…-b9419ba80e09`) was then found via `GET /orders`, so the request went `ui → checkout → orders → orders-db` and was persisted, not just acknowledged. The stored order has no line items; that is how the upstream checkout service builds the order (see below), not a deployment fault.
+
+## Other observations (not fixed yet)
+- **The stored order has no line items and the name `John Doe` — traced to the app, not the deployment.** Querying the database directly showed `CUSTOMER_ORDER` with one row and `CUSTOMER_ORDER_ITEM` empty, so `GET /orders` was not hiding anything. The cause is in the upstream checkout service: `src/checkout/src/checkout/orders/HttpOrdersService.ts` hardcodes `firstName: "John"`, `lastName: "Doe"` and `items: []`, and only the email comes from the real request. The sample app never forwards the cart contents to `orders`. This is inherited upstream behaviour and not something the chart can fix; the `carts` leg of checkout is therefore still unexercised end to end. (Hibernate also created the `CUSTOMER_ORDER` / `CUSTOMER_ORDER_ITEM` schema on its own against the empty MariaDB, so no init script is needed.)
+- `MultiplePodDisruptionBudgets` warning: the charts ship overlapping PDBs for the same pods.
+- `pullPolicy: Always` combined with the `:latest` tag means pods are not reproducible between restarts.
+- The datastores have no PersistentVolumeClaims on this cluster, so data does not survive a pod restart (acceptable for a demo, worth stating).
+
+---
+
+# 📊 Current Capabilities (as of Session 8)
 
 ## Done
 - Both repos on stable, corruption-free git, outside OneDrive sync
@@ -339,13 +390,13 @@ After the image and replica fixes, `carts` and `orders` kept crash-looping — b
 - `repository_dispatch` fires successfully to the automation repo on every push to `main`
 - Local kind cluster + ArgoCD running and stable
 - Automation repo's chart is a real, working umbrella chart (11 vendored subcharts), `deploy.yaml` and its committed secrets are gone
-- All 11 services deploy and run correctly, fully wired end to end (`ui → catalog → mariadb` confirmed via an actual HTTP request, not just pod status)
+- All 11 services deploy and run correctly. Verified paths: `ui → catalog → mariadb` (an actual HTTP request, Session 7) and `orders → orders-db` via `/actuator/health` and `GET /orders` (Session 8). Other service-to-service paths (carts, checkout) have not been exercised the same way yet
 - ArgoCD manages the `revive-dev` environment declaratively from GitHub, auto-sync + self-heal
 - `revive-production` Application exists, manual-sync only, not yet tracking a real release
 
 ## Not Yet Done
 - No receiving workflow in the automation repo for the `repository_dispatch` event yet — it fires, but nothing listens for it, so image tag bumps still require a manual chart edit
-- Two credentials in the chart are still plaintext-ish (base64-encoded, not encrypted) — mariadb/postgresql auth passwords ("testing") inherited from the vendored charts' defaults; Sealed Secrets remediation (planned since Session 1) hasn't happened yet
+- Two credentials in the chart are still plaintext-ish (base64-encoded, not encrypted) — the two MariaDB auth passwords ("testing") inherited from the vendored charts' defaults; Sealed Secrets remediation (planned since Session 1) hasn't happened yet
 - No NetworkPolicies, Pod Security Admission, or cluster-side signature verification yet
 - No DAST scanning yet (needs a live deployed target — now exists, wasn't wired up this session)
 - Old Jenkinsfiles and `docker-compose.yml`-as-deploy-path artifacts in the automation repo still present
@@ -359,7 +410,8 @@ After the image and replica fixes, `carts` and `orders` kept crash-looping — b
 
 ## Short-Term (next few working sessions)
 - Wire the `repository_dispatch` → automation-repo receiving workflow so a commit in the app repo flows untouched-by-hand into a running pod in kind (the last piece of the CI→CD loop)
-- Rotate the mariadb/postgresql credentials still inherited from the vendored charts' defaults and replace them with Sealed Secrets
+- Rotate the MariaDB credentials still inherited from the vendored charts' defaults and replace them with Sealed Secrets
+- Chart hardening found in Session 8: add readiness/liveness probes to the app charts, a config checksum annotation so ConfigMap/Secret changes roll pods, fix the overlapping PodDisruptionBudgets, and stop pairing `pullPolicy: Always` with `:latest`
 - Triage the report-only findings (Semgrep, Trivy, govulncheck, npm audit): fix the Spring Boot Actuator over-exposure, decide on a remediation plan for the frozen npm/Go dependency baselines before flipping any gate to blocking
 - Write real unit test coverage for `checkout`
 
