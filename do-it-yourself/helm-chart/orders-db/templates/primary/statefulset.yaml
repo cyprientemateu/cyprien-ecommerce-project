@@ -3,56 +3,48 @@ Copyright VMware, Inc.
 SPDX-License-Identifier: APACHE-2.0
 */}}
 
-{{- $customUser := include "postgresql.v1.username" . }}
 apiVersion: {{ include "common.capabilities.statefulset.apiVersion" . }}
 kind: StatefulSet
 metadata:
-  name: {{ include "postgresql.v1.primary.fullname" . }}
+  name: {{ include "mariadb.primary.fullname" . }}
   namespace: {{ .Release.Namespace | quote }}
-  {{- $labels := include "common.tplvalues.merge" ( dict "values" ( list .Values.primary.labels .Values.commonLabels ) "context" . ) }}
-  labels: {{- include "common.labels.standard" ( dict "customLabels" $labels "context" $ ) | nindent 4 }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/component: primary
-  {{- if or .Values.commonAnnotations .Values.primary.annotations }}
-  {{- $annotations := include "common.tplvalues.merge" ( dict "values" ( list .Values.primary.annotations .Values.commonAnnotations ) "context" . ) }}
-  annotations: {{- include "common.tplvalues.render" ( dict "value" $annotations "context" $) | nindent 4 }}
+  {{- if .Values.commonAnnotations }}
+  annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
   {{- end }}
 spec:
   replicas: 1
-  serviceName: {{ include "postgresql.v1.primary.svc.headless" . }}
-  {{- if .Values.primary.updateStrategy }}
-  updateStrategy: {{- toYaml .Values.primary.updateStrategy | nindent 4 }}
-  {{- end }}
+  revisionHistoryLimit: {{ .Values.primary.revisionHistoryLimit }}
   {{- $podLabels := include "common.tplvalues.merge" ( dict "values" ( list .Values.primary.podLabels .Values.commonLabels ) "context" . ) }}
   selector:
     matchLabels: {{- include "common.labels.matchLabels" ( dict "customLabels" $podLabels "context" $ ) | nindent 6 }}
       app.kubernetes.io/component: primary
+  serviceName: {{ include "mariadb.primary.fullname" . }}
+  {{- if .Values.primary.updateStrategy }}
+  updateStrategy: {{- toYaml .Values.primary.updateStrategy | nindent 4 }}
+  {{- end }}
   template:
     metadata:
-      name: {{ include "postgresql.v1.primary.fullname" . }}
-      labels: {{- include "common.labels.standard" ( dict "customLabels" $podLabels "context" $ ) | nindent 8 }}
-        app.kubernetes.io/component: primary
-      {{- if or (include "postgresql.v1.primary.createConfigmap" .) (include "postgresql.v1.primary.createExtendedConfigmap" .) .Values.primary.podAnnotations }}
       annotations:
-        {{- if (include "postgresql.v1.primary.createConfigmap" .) }}
-        checksum/configuration: {{ pick (include (print $.Template.BasePath "/primary/configmap.yaml") . | fromYaml) "data" | toYaml | sha256sum }}
-        {{- end }}
-        {{- if (include "postgresql.v1.primary.createExtendedConfigmap" .) }}
-        checksum/extended-configuration: {{ pick (include (print $.Template.BasePath "/primary/extended-configmap.yaml") . | fromYaml) "data" | toYaml | sha256sum }}
+        {{- if (include "mariadb.primary.createConfigmap" .) }}
+        checksum/configuration: {{ include (print $.Template.BasePath "/primary/configmap.yaml") . | sha256sum }}
         {{- end }}
         {{- if .Values.primary.podAnnotations }}
-        {{- include "common.tplvalues.render" ( dict "value" .Values.primary.podAnnotations "context" $ ) | nindent 8 }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.primary.podAnnotations "context" $) | nindent 8 }}
         {{- end }}
-      {{- end }}
+      labels: {{- include "common.labels.standard" ( dict "customLabels" $podLabels "context" $ ) | nindent 8 }}
+        app.kubernetes.io/component: primary
     spec:
-      {{- if .Values.primary.extraPodSpec }}
-      {{- include "common.tplvalues.render" (dict "value" .Values.primary.extraPodSpec "context" $) | nindent 6 }}
-      {{- end }}
-      serviceAccountName: {{ include "postgresql.v1.serviceAccountName" . }}
-      {{- include "postgresql.v1.imagePullSecrets" . | nindent 6 }}
+      {{- include "mariadb.imagePullSecrets" . | nindent 6 }}
       automountServiceAccountToken: {{ .Values.primary.automountServiceAccountToken }}
       {{- if .Values.primary.hostAliases }}
       hostAliases: {{- include "common.tplvalues.render" (dict "value" .Values.primary.hostAliases "context" $) | nindent 8 }}
       {{- end }}
+      {{- if or .Values.primary.schedulerName .Values.schedulerName }}
+      schedulerName: {{ (coalesce .Values.primary.schedulerName .Values.schedulerName) | quote }}
+      {{- end }}
+      serviceAccountName: {{ template "mariadb.serviceAccountName" . }}
       {{- if .Values.primary.affinity }}
       affinity: {{- include "common.tplvalues.render" (dict "value" .Values.primary.affinity "context" $) | nindent 8 }}
       {{- else }}
@@ -67,116 +59,55 @@ spec:
       {{- if .Values.primary.tolerations }}
       tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.primary.tolerations "context" $) | nindent 8 }}
       {{- end }}
+      {{- if .Values.primary.schedulerName }}
+      schedulerName: {{ .Values.primary.schedulerName }}
+      {{- end }}
       {{- if .Values.primary.topologySpreadConstraints }}
-      topologySpreadConstraints: {{- include "common.tplvalues.render" (dict "value" .Values.primary.topologySpreadConstraints "context" .) | nindent 8 }}
+      topologySpreadConstraints: {{- include "common.tplvalues.render" (dict "value" .Values.primary.topologySpreadConstraints "context" $) | nindent 8 }}
       {{- end }}
       {{- if .Values.primary.priorityClassName }}
-      priorityClassName: {{ .Values.primary.priorityClassName }}
+      priorityClassName: {{ .Values.primary.priorityClassName | quote }}
+      {{- else if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName | quote }}
       {{- end }}
-      {{- if .Values.primary.schedulerName }}
-      schedulerName: {{ .Values.primary.schedulerName | quote }}
-      {{- end }}
-      {{- if .Values.primary.terminationGracePeriodSeconds }}
-      terminationGracePeriodSeconds: {{ .Values.primary.terminationGracePeriodSeconds }}
+      {{- if .Values.primary.runtimeClassName }}
+      runtimeClassName: {{ .Values.primary.runtimeClassName | quote }}
+      {{- else if .Values.runtimeClassName }}
+      runtimeClassName: {{ .Values.runtimeClassName | quote }}
       {{- end }}
       {{- if .Values.primary.podSecurityContext.enabled }}
       securityContext: {{- omit .Values.primary.podSecurityContext "enabled" | toYaml | nindent 8 }}
       {{- end }}
-      hostNetwork: {{ .Values.primary.hostNetwork }}
-      hostIPC: {{ .Values.primary.hostIPC }}
-      {{- if or (and .Values.tls.enabled (not .Values.volumePermissions.enabled)) (and .Values.volumePermissions.enabled (or .Values.primary.persistence.enabled .Values.shmVolume.enabled)) .Values.primary.initContainers }}
+      {{- if or .Values.primary.initContainers (and .Values.primary.podSecurityContext.enabled .Values.volumePermissions.enabled .Values.primary.persistence.enabled) }}
       initContainers:
-        {{- if and .Values.tls.enabled (not .Values.volumePermissions.enabled) }}
-        - name: copy-certs
-          image: {{ include "postgresql.v1.volumePermissions.image" . }}
+        {{- if .Values.primary.initContainers }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.primary.initContainers "context" $) | nindent 8 }}
+        {{- end }}
+        {{- if and .Values.primary.podSecurityContext.enabled .Values.volumePermissions.enabled .Values.primary.persistence.enabled }}
+        - name: volume-permissions
+          image: {{ include "mariadb.volumePermissions.image" . }}
           imagePullPolicy: {{ .Values.volumePermissions.image.pullPolicy | quote }}
-          {{- if .Values.primary.resources }}
-          resources: {{- toYaml .Values.primary.resources | nindent 12 }}
-          {{- end }}
-          # We don't require a privileged container in this case
-          {{- if .Values.primary.containerSecurityContext.enabled }}
-          securityContext: {{- omit .Values.primary.containerSecurityContext "enabled" | toYaml | nindent 12 }}
-          {{- end }}
           command:
-            - /bin/sh
+            - /bin/bash
             - -ec
             - |
-              cp /tmp/certs/* /opt/bitnami/postgresql/certs/
-              chmod 600 {{ include "postgresql.v1.tlsCertKey" . }}
-          volumeMounts:
-            - name: raw-certificates
-              mountPath: /tmp/certs
-            - name: postgresql-certificates
-              mountPath: /opt/bitnami/postgresql/certs
-        {{- else if and .Values.volumePermissions.enabled (or .Values.primary.persistence.enabled .Values.shmVolume.enabled) }}
-        - name: init-chmod-data
-          image: {{ include "postgresql.v1.volumePermissions.image" . }}
-          imagePullPolicy: {{ .Values.volumePermissions.image.pullPolicy | quote }}
+              chown -R {{ .Values.primary.containerSecurityContext.runAsUser }}:{{ .Values.primary.podSecurityContext.fsGroup }} /bitnami/mariadb
+          securityContext:
+            runAsUser: 0
           {{- if .Values.volumePermissions.resources }}
           resources: {{- toYaml .Values.volumePermissions.resources | nindent 12 }}
           {{- end }}
-          command:
-            - /bin/sh
-            - -ec
-            - |
-              {{- if .Values.primary.persistence.enabled }}
-              {{- if eq ( toString ( .Values.volumePermissions.containerSecurityContext.runAsUser )) "auto" }}
-              chown `id -u`:`id -G | cut -d " " -f2` {{ .Values.primary.persistence.mountPath }}
-              {{- else }}
-              chown {{ .Values.primary.containerSecurityContext.runAsUser }}:{{ .Values.primary.podSecurityContext.fsGroup }} {{ .Values.primary.persistence.mountPath }}
-              {{- end }}
-              mkdir -p {{ .Values.primary.persistence.mountPath }}/data {{- if (include "postgresql.v1.mountConfigurationCM" .) }} {{ .Values.primary.persistence.mountPath }}/conf {{- end }}
-              chmod 700 {{ .Values.primary.persistence.mountPath }}/data {{- if (include "postgresql.v1.mountConfigurationCM" .) }} {{ .Values.primary.persistence.mountPath }}/conf {{- end }}
-              find {{ .Values.primary.persistence.mountPath }} -mindepth 1 -maxdepth 1 {{- if not (include "postgresql.v1.mountConfigurationCM" .) }} -not -name "conf" {{- end }} -not -name ".snapshot" -not -name "lost+found" | \
-              {{- if eq ( toString ( .Values.volumePermissions.containerSecurityContext.runAsUser )) "auto" }}
-                xargs -r chown -R `id -u`:`id -G | cut -d " " -f2`
-              {{- else }}
-                xargs -r chown -R {{ .Values.primary.containerSecurityContext.runAsUser }}:{{ .Values.primary.podSecurityContext.fsGroup }}
-              {{- end }}
-              {{- end }}
-              {{- if .Values.shmVolume.enabled }}
-              chmod -R 777 /dev/shm
-              {{- end }}
-              {{- if .Values.tls.enabled }}
-              cp /tmp/certs/* /opt/bitnami/postgresql/certs/
-              {{- if eq ( toString ( .Values.volumePermissions.containerSecurityContext.runAsUser )) "auto" }}
-              chown -R `id -u`:`id -G | cut -d " " -f2` /opt/bitnami/postgresql/certs/
-              {{- else }}
-              chown -R {{ .Values.primary.containerSecurityContext.runAsUser }}:{{ .Values.primary.podSecurityContext.fsGroup }} /opt/bitnami/postgresql/certs/
-              {{- end }}
-              chmod 600 {{ include "postgresql.v1.tlsCertKey" . }}
-              {{- end }}
-          {{- if eq ( toString ( .Values.volumePermissions.containerSecurityContext.runAsUser )) "auto" }}
-          securityContext: {{- omit .Values.volumePermissions.containerSecurityContext "runAsUser" | toYaml | nindent 12 }}
-          {{- else }}
-          securityContext: {{- .Values.volumePermissions.containerSecurityContext | toYaml | nindent 12 }}
-          {{- end }}
           volumeMounts:
-            {{- if .Values.primary.persistence.enabled }}
             - name: data
-              mountPath: {{ .Values.primary.persistence.mountPath }}
+              mountPath: /bitnami/mariadb
               {{- if .Values.primary.persistence.subPath }}
               subPath: {{ .Values.primary.persistence.subPath }}
               {{- end }}
-            {{- end }}
-            {{- if .Values.shmVolume.enabled }}
-            - name: dshm
-              mountPath: /dev/shm
-            {{- end }}
-            {{- if .Values.tls.enabled }}
-            - name: raw-certificates
-              mountPath: /tmp/certs
-            - name: postgresql-certificates
-              mountPath: /opt/bitnami/postgresql/certs
-            {{- end }}
-        {{- end }}
-        {{- if .Values.primary.initContainers }}
-        {{- include "common.tplvalues.render" ( dict "value" .Values.primary.initContainers "context" $ ) | nindent 8 }}
         {{- end }}
       {{- end }}
       containers:
-        - name: postgresql
-          image: {{ include "postgresql.v1.image" . }}
+        - name: mariadb
+          image: {{ include "mariadb.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
           {{- if .Values.primary.containerSecurityContext.enabled }}
           securityContext: {{- omit .Values.primary.containerSecurityContext "enabled" | toYaml | nindent 12 }}
@@ -191,197 +122,64 @@ spec:
           {{- else if .Values.primary.args }}
           args: {{- include "common.tplvalues.render" (dict "value" .Values.primary.args "context" $) | nindent 12 }}
           {{- end }}
+          {{- if .Values.primary.lifecycleHooks }}
+          lifecycle: {{- include "common.tplvalues.render" (dict "value" .Values.primary.lifecycleHooks "context" $) | nindent 12 }}
+          {{- end }}
           env:
             - name: BITNAMI_DEBUG
               value: {{ ternary "true" "false" (or .Values.image.debug .Values.diagnosticMode.enabled) | quote }}
-            - name: POSTGRESQL_PORT_NUMBER
-              value: {{ .Values.containerPorts.postgresql | quote }}
-            - name: POSTGRESQL_VOLUME_DIR
-              value: {{ .Values.primary.persistence.mountPath | quote }}
-            {{- if .Values.primary.persistence.mountPath }}
-            - name: PGDATA
-              value: {{ .Values.postgresqlDataDir | quote }}
-            {{- end }}
-            # Authentication
-            {{- if or (eq $customUser "postgres") (empty $customUser) }}
-            {{- if .Values.auth.enablePostgresUser }}
             {{- if .Values.auth.usePasswordFiles }}
-            - name: POSTGRES_PASSWORD_FILE
-              value: {{ printf "/opt/bitnami/postgresql/secrets/%s" (include "postgresql.v1.adminPasswordKey" .) }}
+            - name: MARIADB_ROOT_PASSWORD_FILE
+              value: {{ default "/opt/bitnami/mariadb/secrets/mariadb-root-password" .Values.auth.customPasswordFiles.root }}
             {{- else }}
-            - name: POSTGRES_PASSWORD
+            - name: MARIADB_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "postgresql.v1.secretName" . }}
-                  key: {{ include "postgresql.v1.adminPasswordKey" . }}
+                  name: {{ template "mariadb.secretName" . }}
+                  key: mariadb-root-password
             {{- end }}
-            {{- else }}
-            - name: ALLOW_EMPTY_PASSWORD
-              value: "true"
-            {{- end }}
-            {{- else }}
-            - name: POSTGRES_USER
-              value: {{ $customUser | quote }}
+            {{- if not (empty .Values.auth.username) }}
+            - name: MARIADB_USER
+              value: {{ .Values.auth.username | quote }}
             {{- if .Values.auth.usePasswordFiles }}
-            - name: POSTGRES_PASSWORD_FILE
-              value: {{ printf "/opt/bitnami/postgresql/secrets/%s" (include "postgresql.v1.userPasswordKey" .) }}
+            - name: MARIADB_PASSWORD_FILE
+              value: {{ default "/opt/bitnami/mariadb/secrets/mariadb-password" .Values.auth.customPasswordFiles.user }}
             {{- else }}
-            - name: POSTGRES_PASSWORD
+            - name: MARIADB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "postgresql.v1.secretName" . }}
-                  key: {{ include "postgresql.v1.userPasswordKey" . }}
+                  name: {{ template "mariadb.secretName" . }}
+                  key: mariadb-password
             {{- end }}
-            {{- if .Values.auth.enablePostgresUser }}
+            {{- end }}
+            - name: MARIADB_DATABASE
+              value: {{ .Values.auth.database | quote }}
+            {{- if eq .Values.architecture "replication" }}
+            - name: MARIADB_REPLICATION_MODE
+              value: "master"
+            - name: MARIADB_REPLICATION_USER
+              value: {{ .Values.auth.replicationUser | quote }}
             {{- if .Values.auth.usePasswordFiles }}
-            - name: POSTGRES_POSTGRES_PASSWORD_FILE
-              value: {{ printf "/opt/bitnami/postgresql/secrets/%s" (include "postgresql.v1.adminPasswordKey" .) }}
+            - name: MARIADB_REPLICATION_PASSWORD_FILE
+              value: {{ default "/opt/bitnami/mariadb/secrets/mariadb-replication-password" .Values.auth.customPasswordFiles.replicator }}
             {{- else }}
-            - name: POSTGRES_POSTGRES_PASSWORD
+            - name: MARIADB_REPLICATION_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "postgresql.v1.secretName" . }}
-                  key: {{ include "postgresql.v1.adminPasswordKey" . }}
+                  name: {{ template "mariadb.secretName" . }}
+                  key: mariadb-replication-password
             {{- end }}
             {{- end }}
+            {{- if .Values.primary.extraFlags }}
+            - name: MARIADB_EXTRA_FLAGS
+              value: "{{ .Values.primary.extraFlags }}"
             {{- end }}
-            {{- if (include "postgresql.v1.database" .) }}
-            - name: POSTGRES_DATABASE
-              value: {{ (include "postgresql.v1.database" .) | quote }}
+            {{- if .Values.primary.startupWaitOptions }}
+            - name: MARIADB_STARTUP_WAIT_RETRIES
+              value: "{{ .Values.primary.startupWaitOptions.retries | default 300 }}"
+            - name: MARIADB_STARTUP_WAIT_SLEEP_TIME
+              value: "{{ .Values.primary.startupWaitOptions.sleepTime | default 2 }}"
             {{- end }}
-            # Replication
-            {{- if or (eq .Values.architecture "replication") .Values.primary.standby.enabled }}
-            - name: POSTGRES_REPLICATION_MODE
-              value: {{ ternary "slave" "master" .Values.primary.standby.enabled | quote }}
-            - name: POSTGRES_REPLICATION_USER
-              value: {{ .Values.auth.replicationUsername | quote }}
-            {{- if .Values.auth.usePasswordFiles }}
-            - name: POSTGRES_REPLICATION_PASSWORD_FILE
-              value: {{ printf "/opt/bitnami/postgresql/secrets/%s" (include "postgresql.v1.replicationPasswordKey" .) }}
-            {{- else }}
-            - name: POSTGRES_REPLICATION_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "postgresql.v1.secretName" . }}
-                  key: {{ include "postgresql.v1.replicationPasswordKey" . }}
-            {{- end }}
-            {{- if ne .Values.replication.synchronousCommit "off" }}
-            - name: POSTGRES_SYNCHRONOUS_COMMIT_MODE
-              value: {{ .Values.replication.synchronousCommit | quote }}
-            - name: POSTGRES_NUM_SYNCHRONOUS_REPLICAS
-              value: {{ .Values.replication.numSynchronousReplicas | quote }}
-            {{- end }}
-            - name: POSTGRES_CLUSTER_APP_NAME
-              value: {{ .Values.replication.applicationName }}
-            {{- end }}
-            # Initdb
-            {{- if .Values.primary.initdb.args }}
-            - name: POSTGRES_INITDB_ARGS
-              value: {{ .Values.primary.initdb.args | quote }}
-            {{- end }}
-            {{- if .Values.primary.initdb.postgresqlWalDir }}
-            - name: POSTGRES_INITDB_WALDIR
-              value: {{ .Values.primary.initdb.postgresqlWalDir | quote }}
-            {{- end }}
-            {{- if .Values.primary.initdb.user }}
-            - name: POSTGRES_INITSCRIPTS_USERNAME
-              value: {{ .Values.primary.initdb.user }}
-            {{- end }}
-            {{- if .Values.primary.initdb.password }}
-            - name: POSTGRES_INITSCRIPTS_PASSWORD
-              value: {{ .Values.primary.initdb.password | quote }}
-            {{- end }}
-            # Standby
-            {{- if .Values.primary.standby.enabled }}
-            - name: POSTGRES_MASTER_HOST
-              value: {{ .Values.primary.standby.primaryHost }}
-            - name: POSTGRES_MASTER_PORT_NUMBER
-              value: {{ .Values.primary.standby.primaryPort | quote }}
-            {{- end }}
-            # LDAP
-            - name: POSTGRESQL_ENABLE_LDAP
-              value: {{ ternary "yes" "no" .Values.ldap.enabled | quote }}
-            {{- if .Values.ldap.enabled }}
-            {{- if or .Values.ldap.url .Values.ldap.uri }}
-            - name: POSTGRESQL_LDAP_URL
-              value: {{ coalesce .Values.ldap.url .Values.ldap.uri }}
-            {{- else }}
-            - name: POSTGRESQL_LDAP_SERVER
-              value: {{ .Values.ldap.server }}
-            - name: POSTGRESQL_LDAP_PORT
-              value: {{ .Values.ldap.port | quote }}
-            - name: POSTGRESQL_LDAP_SCHEME
-              value: {{ .Values.ldap.scheme }}
-            {{- if (include "postgresql.v1.ldap.tls.enabled" .) }}
-            - name: POSTGRESQL_LDAP_TLS
-              value: "1"
-            {{- end }}
-            - name: POSTGRESQL_LDAP_PREFIX
-              value: {{ .Values.ldap.prefix | quote }}
-            - name: POSTGRESQL_LDAP_SUFFIX
-              value: {{ .Values.ldap.suffix | quote }}
-            - name: POSTGRESQL_LDAP_BASE_DN
-              value: {{ coalesce .Values.ldap.baseDN .Values.ldap.basedn }}
-            - name: POSTGRESQL_LDAP_BIND_DN
-              value: {{ coalesce .Values.ldap.bindDN .Values.ldap.binddn}}
-            {{- if or  (not (empty .Values.ldap.bind_password)) (not (empty .Values.ldap.bindpw)) }}
-            - name: POSTGRESQL_LDAP_BIND_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "postgresql.v1.secretName" . }}
-                  key: ldap-password
-            {{- end }}
-            - name: POSTGRESQL_LDAP_SEARCH_ATTR
-              value: {{ coalesce .Values.ldap.search_attr .Values.ldap.searchAttribute }}
-            - name: POSTGRESQL_LDAP_SEARCH_FILTER
-              value: {{ coalesce .Values.ldap.search_filter .Values.ldap.searchFilter }}
-            {{- end }}
-            {{- end }}
-            # TLS
-            - name: POSTGRESQL_ENABLE_TLS
-              value: {{ ternary "yes" "no" .Values.tls.enabled | quote }}
-            {{- if .Values.tls.enabled }}
-            - name: POSTGRESQL_TLS_PREFER_SERVER_CIPHERS
-              value: {{ ternary "yes" "no" .Values.tls.preferServerCiphers | quote }}
-            - name: POSTGRESQL_TLS_CERT_FILE
-              value: {{ include "postgresql.v1.tlsCert" . }}
-            - name: POSTGRESQL_TLS_KEY_FILE
-              value: {{ include "postgresql.v1.tlsCertKey" . }}
-            {{- if .Values.tls.certCAFilename }}
-            - name: POSTGRESQL_TLS_CA_FILE
-              value: {{ include "postgresql.v1.tlsCACert" . }}
-            {{- end }}
-            {{- if .Values.tls.crlFilename }}
-            - name: POSTGRESQL_TLS_CRL_FILE
-              value: {{ include "postgresql.v1.tlsCRL" . }}
-            {{- end }}
-            {{- end }}
-            # Audit
-            - name: POSTGRESQL_LOG_HOSTNAME
-              value: {{ .Values.audit.logHostname | quote }}
-            - name: POSTGRESQL_LOG_CONNECTIONS
-              value: {{ .Values.audit.logConnections | quote }}
-            - name: POSTGRESQL_LOG_DISCONNECTIONS
-              value: {{ .Values.audit.logDisconnections | quote }}
-            {{- if .Values.audit.logLinePrefix }}
-            - name: POSTGRESQL_LOG_LINE_PREFIX
-              value: {{ .Values.audit.logLinePrefix | quote }}
-            {{- end }}
-            {{- if .Values.audit.logTimezone }}
-            - name: POSTGRESQL_LOG_TIMEZONE
-              value: {{ .Values.audit.logTimezone | quote }}
-            {{- end }}
-            {{- if .Values.audit.pgAuditLog }}
-            - name: POSTGRESQL_PGAUDIT_LOG
-              value: {{ .Values.audit.pgAuditLog | quote }}
-            {{- end }}
-            - name: POSTGRESQL_PGAUDIT_LOG_CATALOG
-              value: {{ .Values.audit.pgAuditLogCatalog | quote }}
-            # Others
-            - name: POSTGRESQL_CLIENT_MIN_MESSAGES
-              value: {{ .Values.audit.clientMinMessages | quote }}
-            - name: POSTGRESQL_SHARED_PRELOAD_LIBRARIES
-              value: {{ .Values.postgresqlSharedPreloadLibraries | quote }}
             {{- if .Values.primary.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.primary.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}
@@ -397,266 +195,199 @@ spec:
             {{- end }}
           {{- end }}
           ports:
-            - name: tcp-postgresql
-              containerPort: {{ .Values.containerPorts.postgresql }}
+            - name: mysql
+              containerPort: 3306
           {{- if not .Values.diagnosticMode.enabled }}
           {{- if .Values.primary.customStartupProbe }}
           startupProbe: {{- include "common.tplvalues.render" (dict "value" .Values.primary.customStartupProbe "context" $) | nindent 12 }}
           {{- else if .Values.primary.startupProbe.enabled }}
-          startupProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.primary.startupProbe "enabled") "context" $) | nindent 12 }}
+          startupProbe: {{- omit .Values.primary.startupProbe "enabled" | toYaml | nindent 12 }}
             exec:
               command:
-                - /bin/sh
-                - -c
-                {{- if (include "postgresql.v1.database" .) }}
-                - exec pg_isready -U {{ default "postgres" $customUser | quote }} -d "dbname={{ include "postgresql.v1.database" . }} {{- if and .Values.tls.enabled .Values.tls.certCAFilename }} sslcert={{ include "postgresql.v1.tlsCert" . }} sslkey={{ include "postgresql.v1.tlsCertKey" . }}{{- end }}" -h 127.0.0.1 -p {{ .Values.containerPorts.postgresql }}
-                {{- else }}
-                - exec pg_isready -U {{ default "postgres" $customUser | quote }} {{- if and .Values.tls.enabled .Values.tls.certCAFilename }} -d "sslcert={{ include "postgresql.v1.tlsCert" . }} sslkey={{ include "postgresql.v1.tlsCertKey" . }}"{{- end }} -h 127.0.0.1 -p {{ .Values.containerPorts.postgresql }}
-                {{- end }}
+                - /bin/bash
+                - -ec
+                - |
+                  password_aux="${MARIADB_ROOT_PASSWORD:-}"
+                  if [[ -f "${MARIADB_ROOT_PASSWORD_FILE:-}" ]]; then
+                      password_aux=$(cat "$MARIADB_ROOT_PASSWORD_FILE")
+                  fi
+                  mysqladmin status -uroot -p"${password_aux}"
           {{- end }}
           {{- if .Values.primary.customLivenessProbe }}
           livenessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.primary.customLivenessProbe "context" $) | nindent 12 }}
           {{- else if .Values.primary.livenessProbe.enabled }}
-          livenessProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.primary.livenessProbe "enabled") "context" $) | nindent 12 }}
+          livenessProbe: {{- omit .Values.primary.livenessProbe "enabled" | toYaml | nindent 12 }}
             exec:
               command:
-                - /bin/sh
-                - -c
-                {{- if (include "postgresql.v1.database" .) }}
-                - exec pg_isready -U {{ default "postgres" $customUser | quote }} -d "dbname={{ include "postgresql.v1.database" . }} {{- if and .Values.tls.enabled .Values.tls.certCAFilename }} sslcert={{ include "postgresql.v1.tlsCert" . }} sslkey={{ include "postgresql.v1.tlsCertKey" . }}{{- end }}" -h 127.0.0.1 -p {{ .Values.containerPorts.postgresql }}
-                {{- else }}
-                - exec pg_isready -U {{ default "postgres" $customUser | quote }} {{- if and .Values.tls.enabled .Values.tls.certCAFilename }} -d "sslcert={{ include "postgresql.v1.tlsCert" . }} sslkey={{ include "postgresql.v1.tlsCertKey" . }}"{{- end }} -h 127.0.0.1 -p {{ .Values.containerPorts.postgresql }}
-                {{- end }}
+                - /bin/bash
+                - -ec
+                - |
+                  password_aux="${MARIADB_ROOT_PASSWORD:-}"
+                  if [[ -f "${MARIADB_ROOT_PASSWORD_FILE:-}" ]]; then
+                      password_aux=$(cat "$MARIADB_ROOT_PASSWORD_FILE")
+                  fi
+                  mysqladmin status -uroot -p"${password_aux}"
           {{- end }}
           {{- if .Values.primary.customReadinessProbe }}
           readinessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.primary.customReadinessProbe "context" $) | nindent 12 }}
           {{- else if .Values.primary.readinessProbe.enabled }}
-          readinessProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.primary.readinessProbe "enabled") "context" $) | nindent 12 }}
+          readinessProbe: {{- omit .Values.primary.readinessProbe "enabled" | toYaml | nindent 12 }}
             exec:
               command:
-                - /bin/sh
-                - -c
-                - -e
-                {{- include "postgresql.v1.readinessProbeCommand" . | nindent 16 }}
+                - /bin/bash
+                - -ec
+                - |
+                  password_aux="${MARIADB_ROOT_PASSWORD:-}"
+                  if [[ -f "${MARIADB_ROOT_PASSWORD_FILE:-}" ]]; then
+                      password_aux=$(cat "$MARIADB_ROOT_PASSWORD_FILE")
+                  fi
+                  mysqladmin status -uroot -p"${password_aux}"
           {{- end }}
           {{- end }}
           {{- if .Values.primary.resources }}
-          resources: {{- toYaml .Values.primary.resources | nindent 12 }}
-          {{- end }}
-          {{- if .Values.primary.lifecycleHooks }}
-          lifecycle: {{- include "common.tplvalues.render" (dict "value" .Values.primary.lifecycleHooks "context" $) | nindent 12 }}
+          resources: {{ toYaml .Values.primary.resources | nindent 12 }}
           {{- end }}
           volumeMounts:
-            {{- if or .Values.primary.initdb.scriptsConfigMap .Values.primary.initdb.scripts }}
-            - name: custom-init-scripts
-              mountPath: /docker-entrypoint-initdb.d/
-            {{- end }}
-            {{- if .Values.primary.initdb.scriptsSecret }}
-            - name: custom-init-scripts-secret
-              mountPath: /docker-entrypoint-initdb.d/secret
-            {{- end }}
-            {{- if or .Values.primary.extendedConfiguration .Values.primary.existingExtendedConfigmap }}
-            - name: postgresql-extended-config
-              mountPath: {{ .Values.primary.persistence.mountPath }}/conf/conf.d/
-            {{- end }}
-            {{- if .Values.auth.usePasswordFiles }}
-            - name: postgresql-password
-              mountPath: /opt/bitnami/postgresql/secrets/
-            {{- end }}
-            {{- if .Values.tls.enabled }}
-            - name: postgresql-certificates
-              mountPath: /opt/bitnami/postgresql/certs
-              readOnly: true
-            {{- end }}
-            {{- if .Values.shmVolume.enabled }}
-            - name: dshm
-              mountPath: /dev/shm
-            {{- end }}
-            {{- if .Values.primary.persistence.enabled }}
             - name: data
-              mountPath: {{ .Values.primary.persistence.mountPath }}
+              mountPath: /bitnami/mariadb
               {{- if .Values.primary.persistence.subPath }}
               subPath: {{ .Values.primary.persistence.subPath }}
               {{- end }}
+            {{- if or .Values.initdbScriptsConfigMap .Values.initdbScripts }}
+            - name: custom-init-scripts
+              mountPath: /docker-entrypoint-initdb.d
             {{- end }}
-            {{- if or .Values.primary.configuration .Values.primary.pgHbaConfiguration .Values.primary.existingConfigmap }}
-            - name: postgresql-config
-              mountPath: {{ .Values.primary.persistence.mountPath }}/conf
+            {{- if or .Values.primary.configuration .Values.primary.existingConfigmap }}
+            - name: config
+              mountPath: /opt/bitnami/mariadb/conf/my.cnf
+              subPath: my.cnf
+            {{- end }}
+            {{- if and .Values.auth.usePasswordFiles (not .Values.auth.customPasswordFiles) }}
+            - name: mariadb-credentials
+              mountPath: /opt/bitnami/mariadb/secrets/
             {{- end }}
             {{- if .Values.primary.extraVolumeMounts }}
             {{- include "common.tplvalues.render" (dict "value" .Values.primary.extraVolumeMounts "context" $) | nindent 12 }}
             {{- end }}
         {{- if .Values.metrics.enabled }}
         - name: metrics
-          image: {{ include "postgresql.v1.metrics.image" . }}
+          image: {{ include "mariadb.metrics.image" . }}
           imagePullPolicy: {{ .Values.metrics.image.pullPolicy | quote }}
           {{- if .Values.metrics.containerSecurityContext.enabled }}
           securityContext: {{- omit .Values.metrics.containerSecurityContext "enabled" | toYaml | nindent 12 }}
           {{- end }}
+          env:
+            {{- if .Values.auth.usePasswordFiles }}
+            - name: MARIADB_ROOT_PASSWORD_FILE
+              value: {{ default "/opt/bitnami/mysqld-exporter/secrets/mariadb-root-password" .Values.auth.customPasswordFiles.root }}
+            {{- else }}
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "mariadb.secretName" . }}
+                  key: mariadb-root-password
+            {{- end }}
           {{- if .Values.diagnosticMode.enabled }}
           command: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.command "context" $) | nindent 12 }}
           args: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.args "context" $) | nindent 12 }}
-          {{- else if or .Values.metrics.customMetrics .Values.metrics.collectors }}
-          args:
-            {{- if .Values.metrics.customMetrics }}
-            - --extend.query-path
-            - /conf/custom-metrics.yaml
-            {{- end }}
-            {{- range $name, $enabled := .Values.metrics.collectors }}
-            - --{{ if not $enabled }}no-{{ end }}collector.{{ $name }}
-            {{- end }}
+          {{- else }}
+          command:
+            - /bin/bash
+            - -ec
+            - |
+              password_aux="${MARIADB_ROOT_PASSWORD:-}"
+              if [[ -f "${MARIADB_ROOT_PASSWORD_FILE:-}" ]]; then
+                  password_aux=$(cat "$MARIADB_ROOT_PASSWORD_FILE")
+              fi
+              MYSQLD_EXPORTER_PASSWORD=${password_aux} /bin/mysqld_exporter --mysqld.address=localhost:3306 --mysqld.username=root {{- range .Values.metrics.extraArgs.primary }} {{ . }} {{- end }}
           {{- end }}
-          env:
-            {{- $database := required "In order to enable metrics you need to specify a database (.Values.auth.database or .Values.global.postgresql.auth.database)" (include "postgresql.v1.database" .) }}
-            - name: DATA_SOURCE_URI
-              value: {{ printf "127.0.0.1:%d/%s?sslmode=disable" (int (include "postgresql.v1.service.port" .)) $database }}
-            {{- $pwdKey := ternary (include "postgresql.v1.adminPasswordKey" .) (include "postgresql.v1.userPasswordKey" .) (or (eq $customUser "postgres") (empty $customUser)) }}
-            {{- if .Values.auth.usePasswordFiles }}
-            - name: DATA_SOURCE_PASS_FILE
-              value: {{ printf "/opt/bitnami/postgresql/secrets/%s" $pwdKey }}
-            {{- else }}
-            - name: DATA_SOURCE_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "postgresql.v1.secretName" . }}
-                  key: {{ $pwdKey }}
-            {{- end }}
-            - name: DATA_SOURCE_USER
-              value: {{ default "postgres" $customUser | quote }}
-            {{- if .Values.metrics.extraEnvVars }}
-            {{- include "common.tplvalues.render" (dict "value" .Values.metrics.extraEnvVars "context" $) | nindent 12 }}
-            {{- end }}
           ports:
-            - name: http-metrics
-              containerPort: {{ .Values.metrics.containerPorts.metrics }}
+            - name: metrics
+              containerPort: 9104
           {{- if not .Values.diagnosticMode.enabled }}
-          {{- if .Values.metrics.customStartupProbe }}
-          startupProbe: {{- include "common.tplvalues.render" (dict "value" .Values.metrics.customStartupProbe "context" $) | nindent 12 }}
-          {{- else if .Values.metrics.startupProbe.enabled }}
-          startupProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.metrics.startupProbe "enabled") "context" $) | nindent 12 }}
-            tcpSocket:
-              port: http-metrics
-          {{- end }}
-          {{- if .Values.metrics.customLivenessProbe }}
-          livenessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.metrics.customLivenessProbe "context" $) | nindent 12 }}
-          {{- else if .Values.metrics.livenessProbe.enabled }}
-          livenessProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.metrics.livenessProbe "enabled") "context" $) | nindent 12 }}
+          {{- if .Values.metrics.livenessProbe.enabled }}
+          livenessProbe: {{- omit .Values.metrics.livenessProbe "enabled" | toYaml | nindent 12 }}
             httpGet:
-              path: /
-              port: http-metrics
+              path: /metrics
+              port: metrics
           {{- end }}
-          {{- if .Values.metrics.customReadinessProbe }}
-          readinessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.metrics.customReadinessProbe "context" $) | nindent 12 }}
-          {{- else if .Values.metrics.readinessProbe.enabled }}
-          readinessProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.metrics.readinessProbe "enabled") "context" $) | nindent 12 }}
+          {{- if .Values.metrics.readinessProbe.enabled }}
+          readinessProbe: {{- omit .Values.metrics.readinessProbe "enabled" | toYaml | nindent 12 }}
             httpGet:
-              path: /
-              port: http-metrics
+              path: /metrics
+              port: metrics
           {{- end }}
           {{- end }}
-          volumeMounts:
-            {{- if .Values.auth.usePasswordFiles }}
-            - name: postgresql-password
-              mountPath: /opt/bitnami/postgresql/secrets/
-            {{- end }}
-            {{- if .Values.metrics.customMetrics }}
-            - name: custom-metrics
-              mountPath: /conf
-              readOnly: true
-            {{- end }}
           {{- if .Values.metrics.resources }}
           resources: {{- toYaml .Values.metrics.resources | nindent 12 }}
           {{- end }}
+          volumeMounts:
+          {{- if and .Values.auth.usePasswordFiles (not .Values.auth.customPasswordFiles) }}
+            - name: mariadb-credentials
+              mountPath: /opt/bitnami/mysqld-exporter/secrets/
+          {{- end }}
+          {{- if .Values.metrics.extraVolumeMounts.primary }}
+          {{- include "common.tplvalues.render" (dict "value" .Values.metrics.extraVolumeMounts.primary "context" $) | nindent 12 }}
+          {{- end }}
         {{- end }}
         {{- if .Values.primary.sidecars }}
-        {{- include "common.tplvalues.render" ( dict "value" .Values.primary.sidecars "context" $ ) | nindent 8 }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.primary.sidecars "context" $) | nindent 8 }}
         {{- end }}
       volumes:
-        {{- if or .Values.primary.configuration .Values.primary.pgHbaConfiguration .Values.primary.existingConfigmap }}
-        - name: postgresql-config
+        {{- if or .Values.primary.configuration .Values.primary.existingConfigmap }}
+        - name: config
           configMap:
-            name: {{ include "postgresql.v1.primary.configmapName" . }}
+            name: {{ include "mariadb.primary.configmapName" . }}
         {{- end }}
-        {{- if or .Values.primary.extendedConfiguration .Values.primary.existingExtendedConfigmap }}
-        - name: postgresql-extended-config
-          configMap:
-            name: {{ include "postgresql.v1.primary.extendedConfigmapName" . }}
-        {{- end }}
-        {{- if .Values.auth.usePasswordFiles }}
-        - name: postgresql-password
-          secret:
-            secretName: {{ include "postgresql.v1.secretName" . }}
-        {{- end }}
-        {{- if or .Values.primary.initdb.scriptsConfigMap .Values.primary.initdb.scripts }}
+        {{- if or .Values.initdbScriptsConfigMap .Values.initdbScripts }}
         - name: custom-init-scripts
           configMap:
-            name: {{ include "postgresql.v1.initdb.scriptsCM" . }}
+            name: {{ template "mariadb.initdbScriptsCM" . }}
         {{- end }}
-        {{- if .Values.primary.initdb.scriptsSecret }}
-        - name: custom-init-scripts-secret
+        {{- if and .Values.auth.usePasswordFiles (not .Values.auth.customPasswordFiles) }}
+        - name: mariadb-credentials
           secret:
-            secretName: {{ tpl .Values.primary.initdb.scriptsSecret $ }}
-        {{- end }}
-        {{- if  .Values.tls.enabled }}
-        - name: raw-certificates
-          secret:
-            secretName: {{ include "postgresql.v1.tlsSecretName" . }}
-        - name: postgresql-certificates
-          emptyDir: {}
+            secretName: {{ template "mariadb.secretName" . }}
+            items:
+              - key: mariadb-root-password
+                path: mariadb-root-password
+              - key: mariadb-password
+                path: mariadb-password
+              {{- if eq .Values.architecture "replication" }}
+              - key: mariadb-replication-password
+                path: mariadb-replication-password
+              {{- end }}
         {{- end }}
         {{- if .Values.primary.extraVolumes }}
-        {{- include "common.tplvalues.render" ( dict "value" .Values.primary.extraVolumes "context" $ ) | nindent 8 }}
-        {{- end }}
-        {{- if and .Values.metrics.enabled .Values.metrics.customMetrics }}
-        - name: custom-metrics
-          configMap:
-            name: {{ printf "%s-metrics" (include "postgresql.v1.primary.fullname" .) }}
-        {{- end }}
-        {{- if .Values.shmVolume.enabled }}
-        - name: dshm
-          emptyDir:
-            medium: Memory
-            {{- if .Values.shmVolume.sizeLimit }}
-            sizeLimit: {{ .Values.shmVolume.sizeLimit }}
-            {{- end }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.primary.extraVolumes "context" $) | nindent 8 }}
         {{- end }}
   {{- if and .Values.primary.persistence.enabled .Values.primary.persistence.existingClaim }}
         - name: data
           persistentVolumeClaim:
-            claimName: {{ tpl .Values.primary.persistence.existingClaim $ }}
+            claimName: {{ tpl .Values.primary.persistence.existingClaim . }}
   {{- else if not .Values.primary.persistence.enabled }}
         - name: data
           emptyDir: {}
-  {{- else }}
-  {{- if .Values.primary.persistentVolumeClaimRetentionPolicy.enabled }}
-  persistentVolumeClaimRetentionPolicy:
-    whenDeleted: {{ .Values.primary.persistentVolumeClaimRetentionPolicy.whenDeleted }}
-    whenScaled: {{ .Values.primary.persistentVolumeClaimRetentionPolicy.whenScaled }}
-  {{- end }}
+  {{- else if and .Values.primary.persistence.enabled (not .Values.primary.persistence.existingClaim) }}
   volumeClaimTemplates:
-    - apiVersion: v1
-      kind: PersistentVolumeClaim
-      metadata:
+    - metadata:
         name: data
+        {{- $claimLabels := include "common.tplvalues.merge" ( dict "values" ( list .Values.primary.persistence.labels .Values.commonLabels ) "context" . ) }}
+        labels: {{- include "common.labels.matchLabels" ( dict "customLabels" $claimLabels "context" $ ) | nindent 10 }}
+          app.kubernetes.io/component: primary
         {{- if .Values.primary.persistence.annotations }}
-        annotations: {{- include "common.tplvalues.render" (dict "value" .Values.primary.persistence.annotations "context" $) | nindent 10 }}
-        {{- end }}
-        {{- if .Values.primary.persistence.labels }}
-        labels: {{- include "common.tplvalues.render" (dict "value" .Values.primary.persistence.labels "context" $) | nindent 10 }}
+        annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.primary.persistence.annotations "context" $ ) | nindent 10 }}
         {{- end }}
       spec:
         accessModes:
-        {{- range .Values.primary.persistence.accessModes }}
+          {{- range .Values.primary.persistence.accessModes }}
           - {{ . | quote }}
-        {{- end }}
-        {{- if .Values.primary.persistence.dataSource }}
-        dataSource: {{- include "common.tplvalues.render" (dict "value" .Values.primary.persistence.dataSource "context" $) | nindent 10 }}
-        {{- end }}
+          {{- end }}
         resources:
           requests:
             storage: {{ .Values.primary.persistence.size | quote }}
+        {{ include "common.storage.class" (dict "persistence" .Values.primary.persistence "global" .Values.global) }}
         {{- if .Values.primary.persistence.selector }}
         selector: {{- include "common.tplvalues.render" (dict "value" .Values.primary.persistence.selector "context" $) | nindent 10 }}
-        {{- end }}
-        {{- include "common.storage.class" (dict "persistence" .Values.primary.persistence "global" .Values.global) | nindent 8 }}
+        {{- end -}}
   {{- end }}

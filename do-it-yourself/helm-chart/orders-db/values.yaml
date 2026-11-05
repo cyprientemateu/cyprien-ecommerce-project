@@ -2,111 +2,102 @@
 # SPDX-License-Identifier: APACHE-2.0
 
 ## @section Global parameters
-## Please, note that this will override the parameters, including dependencies, configured to use the global value
+## Global Docker image parameters
+## Please, note that this will override the image parameters, including dependencies, configured to use the global value
+## Current available global Docker image parameters: imageRegistry, imagePullSecrets and storageClass
+##
+
+## @param global.imageRegistry Global Docker Image registry
+## @param global.imagePullSecrets Global Docker registry secret names as an array
+## @param global.storageClass Global storage class for dynamic provisioning
 ##
 global:
-  ## @param global.imageRegistry Global Docker image registry
-  ##
   imageRegistry: ""
-  ## @param global.imagePullSecrets Global Docker registry secret names as an array
-  ## e.g.
+  ## E.g.
   ## imagePullSecrets:
   ##   - myRegistryKeySecretName
   ##
   imagePullSecrets: []
-  ## @param global.storageClass Global StorageClass for Persistent Volume(s)
-  ##
   storageClass: ""
-  postgresql:
-    ## @param global.postgresql.auth.postgresPassword Password for the "postgres" admin user (overrides `auth.postgresPassword`)
-    ## @param global.postgresql.auth.username Name for a custom user to create (overrides `auth.username`)
-    ## @param global.postgresql.auth.password Password for the custom user to create (overrides `auth.password`)
-    ## @param global.postgresql.auth.database Name for a custom database to create (overrides `auth.database`)
-    ## @param global.postgresql.auth.existingSecret Name of existing secret to use for PostgreSQL credentials (overrides `auth.existingSecret`).
-    ## @param global.postgresql.auth.secretKeys.adminPasswordKey Name of key in existing secret to use for PostgreSQL credentials (overrides `auth.secretKeys.adminPasswordKey`). Only used when `global.postgresql.auth.existingSecret` is set.
-    ## @param global.postgresql.auth.secretKeys.userPasswordKey Name of key in existing secret to use for PostgreSQL credentials (overrides `auth.secretKeys.userPasswordKey`). Only used when `global.postgresql.auth.existingSecret` is set.
-    ## @param global.postgresql.auth.secretKeys.replicationPasswordKey Name of key in existing secret to use for PostgreSQL credentials (overrides `auth.secretKeys.replicationPasswordKey`). Only used when `global.postgresql.auth.existingSecret` is set.
-    ##
-    auth:
-      postgresPassword: ""
-      username: ""
-      password: ""
-      database: ""
-      existingSecret: ""
-      secretKeys:
-        adminPasswordKey: ""
-        userPasswordKey: ""
-        replicationPasswordKey: ""
-    ## @param global.postgresql.service.ports.postgresql PostgreSQL service port (overrides `service.ports.postgresql`)
-    ##
-    service:
-      ports:
-        postgresql: ""
 
 ## @section Common parameters
 ##
 
-## @param kubeVersion Override Kubernetes version
+## @param kubeVersion Force target Kubernetes version (using Helm capabilities if not set)
 ##
 kubeVersion: ""
-## @param nameOverride String to partially override common.names.fullname template (will maintain the release name)
+## @param nameOverride String to partially override mariadb.fullname
 ##
 nameOverride: ""
-## @param fullnameOverride String to fully override common.names.fullname template
+## @param fullnameOverride String to fully override mariadb.fullname
 ##
 fullnameOverride: ""
-## @param clusterDomain Kubernetes Cluster Domain
+## @param clusterDomain Default Kubernetes cluster domain
 ##
 clusterDomain: cluster.local
+## @param commonAnnotations Common annotations to add to all MariaDB resources (sub-charts are not considered)
+##
+commonAnnotations: {}
+## @param commonLabels Common labels to add to all MariaDB resources (sub-charts are not considered)
+##
+commonLabels: {}
+## @param schedulerName Name of the scheduler (other than default) to dispatch pods
+## ref: https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/
+##
+schedulerName: ""
+## @param runtimeClassName Name of the Runtime Class for all MariaDB pods
+## ref: https://kubernetes.io/docs/concepts/containers/runtime-class/
+##
+runtimeClassName: ""
 ## @param extraDeploy Array of extra objects to deploy with the release (evaluated as a template)
 ##
 extraDeploy: []
-## @param commonLabels Add labels to all the deployed resources
-##
-commonLabels: {}
-## @param commonAnnotations Add annotations to all the deployed resources
-##
-commonAnnotations: {}
-## Enable diagnostic mode in the statefulset
+
+## Enable diagnostic mode in the deployment
 ##
 diagnosticMode:
   ## @param diagnosticMode.enabled Enable diagnostic mode (all probes will be disabled and the command will be overridden)
   ##
   enabled: false
-  ## @param diagnosticMode.command Command to override all containers in the statefulset
+  ## @param diagnosticMode.command Command to override all containers in the deployment
   ##
   command:
     - sleep
-  ## @param diagnosticMode.args Args to override all containers in the statefulset
+  ## @param diagnosticMode.args Args to override all containers in the deployment
   ##
   args:
     - infinity
 
-## @section PostgreSQL common parameters
+## @param serviceBindings.enabled Create secret for service binding (Experimental)
+## Ref: https://servicebinding.io/service-provider/
+##
+serviceBindings:
+  enabled: false
+
+## @section MariaDB common parameters
 ##
 
-## Bitnami PostgreSQL image version
-## ref: https://hub.docker.com/r/bitnami/postgresql/tags/
-## @param image.registry [default: REGISTRY_NAME] PostgreSQL image registry
-## @param image.repository [default: REPOSITORY_NAME/postgresql] PostgreSQL image repository
-## @skip image.tag PostgreSQL image tag (immutable tags are recommended)
-## @param image.digest PostgreSQL image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag
-## @param image.pullPolicy PostgreSQL image pull policy
-## @param image.pullSecrets Specify image pull secrets
-## @param image.debug Specify if debug values should be set
+## Bitnami MariaDB image
+## ref: https://hub.docker.com/r/bitnami/mariadb/tags/
+## @param image.registry [default: REGISTRY_NAME] MariaDB image registry
+## @param image.repository [default: REPOSITORY_NAME/mariadb] MariaDB image repository
+## @skip image.tag MariaDB image tag (immutable tags are recommended)
+## @param image.digest MariaDB image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag
+## @param image.pullPolicy MariaDB image pull policy
+## @param image.pullSecrets Specify docker-registry secret names as an array
+## @param image.debug Specify if debug logs should be enabled
 ##
 image:
   registry: docker.io
-  repository: bitnami/postgresql
-  tag: 16.1.0-debian-11-r26
+  repository: bitnami/mariadb
+  tag: 11.2.2-debian-11-r6
   digest: ""
   ## Specify a imagePullPolicy
   ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
   ## ref: https://kubernetes.io/docs/concepts/containers/images/#pre-pulled-images
   ##
   pullPolicy: IfNotPresent
-  ## Optionally specify an array of imagePullSecrets.
-  ## Secrets must be manually created in the namespace.
+  ## Optionally specify an array of imagePullSecrets (secrets must be manually created in the namespace)
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   ## Example:
   ## pullSecrets:
@@ -114,347 +105,221 @@ image:
   ##
   pullSecrets: []
   ## Set to true if you would like to see extra information on logs
+  ## It turns BASH and/or NAMI debugging in the image
   ##
   debug: false
-## Authentication parameters
-## ref: https://github.com/bitnami/containers/tree/main/bitnami/postgresql#setting-the-root-password-on-first-run
-## ref: https://github.com/bitnami/containers/tree/main/bitnami/postgresql#creating-a-database-on-first-run
-## ref: https://github.com/bitnami/containers/tree/main/bitnami/postgresql#creating-a-database-user-on-first-run
-##
-auth:
-  ## @param auth.enablePostgresUser Assign a password to the "postgres" admin user. Otherwise, remote access will be blocked for this user
-  ##
-  enablePostgresUser: true
-  ## @param auth.postgresPassword Password for the "postgres" admin user. Ignored if `auth.existingSecret` is provided
-  ##
-  postgresPassword: "testing"
-  ## @param auth.username Name for a custom user to create
-  ##
-  username: "orders_user"
-  ## @param auth.password Password for the custom user to create. Ignored if `auth.existingSecret` is provided
-  ##
-  password: "testing"
-  ## @param auth.database Name for a custom database to create
-  ##
-  database: "orders"
-  ## @param auth.replicationUsername Name of the replication user
-  ##
-  replicationUsername: repl_user
-  ## @param auth.replicationPassword Password for the replication user. Ignored if `auth.existingSecret` is provided
-  ##
-  replicationPassword: ""
-  ## @param auth.existingSecret Name of existing secret to use for PostgreSQL credentials. `auth.postgresPassword`, `auth.password`, and `auth.replicationPassword` will be ignored and picked up from this secret. The secret might also contains the key `ldap-password` if LDAP is enabled. `ldap.bind_password` will be ignored and picked from this secret in this case.
-  ##
-  existingSecret: ""
-  ## @param auth.secretKeys.adminPasswordKey Name of key in existing secret to use for PostgreSQL credentials. Only used when `auth.existingSecret` is set.
-  ## @param auth.secretKeys.userPasswordKey Name of key in existing secret to use for PostgreSQL credentials. Only used when `auth.existingSecret` is set.
-  ## @param auth.secretKeys.replicationPasswordKey Name of key in existing secret to use for PostgreSQL credentials. Only used when `auth.existingSecret` is set.
-  ##
-  secretKeys:
-    adminPasswordKey: postgres-password
-    userPasswordKey: password
-    replicationPasswordKey: replication-password
-  ## @param auth.usePasswordFiles Mount credentials as a files instead of using an environment variable
-  ##
-  usePasswordFiles: false
-## @param architecture PostgreSQL architecture (`standalone` or `replication`)
+## @param architecture MariaDB architecture (`standalone` or `replication`)
 ##
 architecture: standalone
-## Replication configuration
-## Ignored if `architecture` is `standalone`
+## MariaDB Authentication parameters
 ##
-replication:
-  ## @param replication.synchronousCommit Set synchronous commit mode. Allowed values: `on`, `remote_apply`, `remote_write`, `local` and `off`
-  ## @param replication.numSynchronousReplicas Number of replicas that will have synchronous replication. Note: Cannot be greater than `readReplicas.replicaCount`.
-  ## ref: https://www.postgresql.org/docs/current/runtime-config-wal.html#GUC-SYNCHRONOUS-COMMIT
+auth:
+  ## @param auth.rootPassword Password for the `root` user. Ignored if existing secret is provided.
+  ## ref: https://github.com/bitnami/containers/tree/main/bitnami/mariadb#setting-the-root-password-on-first-run
   ##
-  synchronousCommit: "off"
-  numSynchronousReplicas: 0
-  ## @param replication.applicationName Cluster application name. Useful for advanced replication settings
+  rootPassword: "testing"
+  ## @param auth.database Name for a custom database to create
+  ## ref: https://github.com/bitnami/containers/blob/main/bitnami/mariadb/README.md#creating-a-database-on-first-run
   ##
-  applicationName: my_application
-## @param containerPorts.postgresql PostgreSQL container port
+  database: orders
+  ## @param auth.username Name for a custom user to create
+  ## ref: https://github.com/bitnami/containers/blob/main/bitnami/mariadb/README.md#creating-a-database-user-on-first-run
+  ##
+  username: "orders_user"
+  ## @param auth.password Password for the new user. Ignored if existing secret is provided
+  ##
+  password: "testing"
+  ## @param auth.replicationUser MariaDB replication user
+  ## ref: https://github.com/bitnami/containers/tree/main/bitnami/mariadb#setting-up-a-replication-cluster
+  ##
+  replicationUser: replicator
+  ## @param auth.replicationPassword MariaDB replication user password. Ignored if existing secret is provided
+  ## ref: https://github.com/bitnami/containers/tree/main/bitnami/mariadb#setting-up-a-replication-cluster
+  ##
+  replicationPassword: ""
+  ## @param auth.existingSecret Use existing secret for password details (`auth.rootPassword`, `auth.password`, `auth.replicationPassword` will be ignored and picked up from this secret). The secret has to contain the keys `mariadb-root-password`, `mariadb-replication-password` and `mariadb-password`
+  ##
+  existingSecret: ""
+  ## @param auth.forcePassword Force users to specify required passwords
+  ##
+  forcePassword: false
+  ## @param auth.usePasswordFiles Mount credentials as files instead of using environment variables
+  ##
+  usePasswordFiles: false
+  ## @param auth.customPasswordFiles Use custom password files when `auth.usePasswordFiles` is set to `true`. Define path for keys `root` and `user`, also define `replicator` if `architecture` is set to `replication`
+  ## Example:
+  ## customPasswordFiles:
+  ##   root: /vault/secrets/mariadb-root
+  ##   user: /vault/secrets/mariadb-user
+  ##   replicator: /vault/secrets/mariadb-replicator
+  ##
+  customPasswordFiles: {}
+## @param initdbScripts Dictionary of initdb scripts
+## Specify dictionary of scripts to be run at first boot
+## Example:
+## initdbScripts:
+##   my_init_script.sh: |
+##      #!/bin/bash
+##      echo "Do something."
 ##
-containerPorts:
-  postgresql: 5432
-## Audit settings
-## https://github.com/bitnami/containers/tree/main/bitnami/postgresql#auditing
-## @param audit.logHostname Log client hostnames
-## @param audit.logConnections Add client log-in operations to the log file
-## @param audit.logDisconnections Add client log-outs operations to the log file
-## @param audit.pgAuditLog Add operations to log using the pgAudit extension
-## @param audit.pgAuditLogCatalog Log catalog using pgAudit
-## @param audit.clientMinMessages Message log level to share with the user
-## @param audit.logLinePrefix Template for log line prefix (default if not set)
-## @param audit.logTimezone Timezone for the log timestamps
+initdbScripts: {}
+## @param initdbScriptsConfigMap ConfigMap with the initdb scripts (Note: Overrides `initdbScripts`)
 ##
-audit:
-  logHostname: false
-  logConnections: false
-  logDisconnections: false
-  pgAuditLog: ""
-  pgAuditLogCatalog: "off"
-  clientMinMessages: error
-  logLinePrefix: ""
-  logTimezone: ""
-## LDAP configuration
-## @param ldap.enabled Enable LDAP support
-## DEPRECATED ldap.url It will removed in a future, please use 'ldap.uri' instead
-## @param ldap.server IP address or name of the LDAP server.
-## @param ldap.port Port number on the LDAP server to connect to
-## @param ldap.prefix String to prepend to the user name when forming the DN to bind
-## @param ldap.suffix String to append to the user name when forming the DN to bind
-## DEPRECATED ldap.baseDN It will removed in a future, please use 'ldap.basedn' instead
-## DEPRECATED ldap.bindDN It will removed in a future, please use 'ldap.binddn' instead
-## DEPRECATED ldap.bind_password It will removed in a future, please use 'ldap.bindpw' instead
-## @param ldap.basedn Root DN to begin the search for the user in
-## @param ldap.binddn DN of user to bind to LDAP
-## @param ldap.bindpw Password for the user to bind to LDAP
-## DEPRECATED ldap.search_attr It will removed in a future, please use 'ldap.searchAttribute' instead
-## DEPRECATED ldap.search_filter It will removed in a future, please use 'ldap.searchFilter' instead
-## @param ldap.searchAttribute Attribute to match against the user name in the search
-## @param ldap.searchFilter The search filter to use when doing search+bind authentication
-## @param ldap.scheme Set to `ldaps` to use LDAPS
-## DEPRECATED ldap.tls as string is deprecated，please use 'ldap.tls.enabled' instead
-## @param ldap.tls.enabled Se to true to enable TLS encryption
-##
-ldap:
-  enabled: false
-  server: ""
-  port: ""
-  prefix: ""
-  suffix: ""
-  basedn: ""
-  binddn: ""
-  bindpw: ""
-  searchAttribute: ""
-  searchFilter: ""
-  scheme: ""
-  tls:
-    enabled: false
-  ## @param ldap.uri LDAP URL beginning in the form `ldap[s]://host[:port]/basedn`. If provided, all the other LDAP parameters will be ignored.
-  ## Ref: https://www.postgresql.org/docs/current/auth-ldap.html
-  ##
-  uri: ""
-## @param postgresqlDataDir PostgreSQL data dir folder
-##
-postgresqlDataDir: /bitnami/postgresql/data
-## @param postgresqlSharedPreloadLibraries Shared preload libraries (comma-separated list)
-##
-postgresqlSharedPreloadLibraries: "pgaudit"
-## Start PostgreSQL pod(s) without limitations on shm memory.
-## By default docker and containerd (and possibly other container runtimes) limit `/dev/shm` to `64M`
-## ref: https://github.com/docker-library/postgres/issues/416
-## ref: https://github.com/containerd/containerd/issues/3654
-##
-shmVolume:
-  ## @param shmVolume.enabled Enable emptyDir volume for /dev/shm for PostgreSQL pod(s)
-  ##
-  enabled: true
-  ## @param shmVolume.sizeLimit Set this to enable a size limit on the shm tmpfs
-  ## Note: the size of the tmpfs counts against container's memory limit
-  ## e.g:
-  ## sizeLimit: 1Gi
-  ##
-  sizeLimit: ""
-## TLS configuration
-##
-tls:
-  ## @param tls.enabled Enable TLS traffic support
-  ##
-  enabled: false
-  ## @param tls.autoGenerated Generate automatically self-signed TLS certificates
-  ##
-  autoGenerated: false
-  ## @param tls.preferServerCiphers Whether to use the server's TLS cipher preferences rather than the client's
-  ##
-  preferServerCiphers: true
-  ## @param tls.certificatesSecret Name of an existing secret that contains the certificates
-  ##
-  certificatesSecret: ""
-  ## @param tls.certFilename Certificate filename
-  ##
-  certFilename: ""
-  ## @param tls.certKeyFilename Certificate key filename
-  ##
-  certKeyFilename: ""
-  ## @param tls.certCAFilename CA Certificate filename
-  ## If provided, PostgreSQL will authenticate TLS/SSL clients by requesting them a certificate
-  ## ref: https://www.postgresql.org/docs/9.6/auth-methods.html
-  ##
-  certCAFilename: ""
-  ## @param tls.crlFilename File containing a Certificate Revocation List
-  ##
-  crlFilename: ""
+initdbScriptsConfigMap: ""
 
-## @section PostgreSQL Primary parameters
+## @section MariaDB Primary parameters
+##
+
+## Mariadb Primary parameters
 ##
 primary:
   ## @param primary.name Name of the primary database (eg primary, master, leader, ...)
   ##
   name: primary
-  ## @param primary.configuration PostgreSQL Primary main configuration to be injected as ConfigMap
-  ## ref: https://www.postgresql.org/docs/current/static/runtime-config.html
-  ##
-  configuration: ""
-  ## @param primary.pgHbaConfiguration PostgreSQL Primary client authentication configuration
-  ## ref: https://www.postgresql.org/docs/current/static/auth-pg-hba-conf.html
-  ## e.g:#
-  ## pgHbaConfiguration: |-
-  ##   local all all trust
-  ##   host all all localhost trust
-  ##   host mydatabase mysuser 192.168.0.0/24 md5
-  ##
-  pgHbaConfiguration: ""
-  ## @param primary.existingConfigmap Name of an existing ConfigMap with PostgreSQL Primary configuration
-  ## NOTE: `primary.configuration` and `primary.pgHbaConfiguration` will be ignored
-  ##
-  existingConfigmap: ""
-  ## @param primary.extendedConfiguration Extended PostgreSQL Primary configuration (appended to main or default configuration)
-  ## ref: https://github.com/bitnami/containers/tree/main/bitnami/postgresql#allow-settings-to-be-loaded-from-files-other-than-the-default-postgresqlconf
-  ##
-  extendedConfiguration: ""
-  ## @param primary.existingExtendedConfigmap Name of an existing ConfigMap with PostgreSQL Primary extended configuration
-  ## NOTE: `primary.extendedConfiguration` will be ignored
-  ##
-  existingExtendedConfigmap: ""
-  ## Initdb configuration
-  ## ref: https://github.com/bitnami/containers/tree/main/bitnami/postgresql#specifying-initdb-arguments
-  ##
-  initdb:
-    ## @param primary.initdb.args PostgreSQL initdb extra arguments
-    ##
-    args: ""
-    ## @param primary.initdb.postgresqlWalDir Specify a custom location for the PostgreSQL transaction log
-    ##
-    postgresqlWalDir: ""
-    ## @param primary.initdb.scripts Dictionary of initdb scripts
-    ## Specify dictionary of scripts to be run at first boot
-    ## e.g:
-    ## scripts:
-    ##   my_init_script.sh: |
-    ##      #!/bin/sh
-    ##      echo "Do something."
-    ##
-    scripts: {}
-    ## @param primary.initdb.scriptsConfigMap ConfigMap with scripts to be run at first boot
-    ## NOTE: This will override `primary.initdb.scripts`
-    ##
-    scriptsConfigMap: ""
-    ## @param primary.initdb.scriptsSecret Secret with scripts to be run at first boot (in case it contains sensitive information)
-    ## NOTE: This can work along `primary.initdb.scripts` or `primary.initdb.scriptsConfigMap`
-    ##
-    scriptsSecret: ""
-    ## @param primary.initdb.user Specify the PostgreSQL username to execute the initdb scripts
-    ##
-    user: ""
-    ## @param primary.initdb.password Specify the PostgreSQL password to execute the initdb scripts
-    ##
-    password: ""
-  ## Configure current cluster's primary server to be the standby server in other cluster.
-  ## This will allow cross cluster replication and provide cross cluster high availability.
-  ## You will need to configure pgHbaConfiguration if you want to enable this feature with local cluster replication enabled.
-  ## @param primary.standby.enabled Whether to enable current cluster's primary as standby server of another cluster or not
-  ## @param primary.standby.primaryHost The Host of replication primary in the other cluster
-  ## @param primary.standby.primaryPort The Port of replication primary in the other cluster
-  ##
-  standby:
-    enabled: false
-    primaryHost: ""
-    primaryPort: ""
-  ## @param primary.extraEnvVars Array with extra environment variables to add to PostgreSQL Primary nodes
-  ## e.g:
-  ## extraEnvVars:
-  ##   - name: FOO
-  ##     value: "bar"
-  ##
-  extraEnvVars: []
-  ## @param primary.extraEnvVarsCM Name of existing ConfigMap containing extra env vars for PostgreSQL Primary nodes
-  ##
-  extraEnvVarsCM: ""
-  ## @param primary.extraEnvVarsSecret Name of existing Secret containing extra env vars for PostgreSQL Primary nodes
-  ##
-  extraEnvVarsSecret: ""
-  ## @param primary.command Override default container command (useful when using custom images)
+  ## @param primary.command Override default container command on MariaDB Primary container(s) (useful when using custom images)
   ##
   command: []
-  ## @param primary.args Override default container args (useful when using custom images)
+  ## @param primary.args Override default container args on MariaDB Primary container(s) (useful when using custom images)
   ##
   args: []
-  ## Configure extra options for PostgreSQL Primary containers' liveness, readiness and startup probes
-  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
-  ## @param primary.livenessProbe.enabled Enable livenessProbe on PostgreSQL Primary containers
-  ## @param primary.livenessProbe.initialDelaySeconds Initial delay seconds for livenessProbe
-  ## @param primary.livenessProbe.periodSeconds Period seconds for livenessProbe
-  ## @param primary.livenessProbe.timeoutSeconds Timeout seconds for livenessProbe
-  ## @param primary.livenessProbe.failureThreshold Failure threshold for livenessProbe
-  ## @param primary.livenessProbe.successThreshold Success threshold for livenessProbe
-  ##
-  livenessProbe:
-    enabled: true
-    initialDelaySeconds: 30
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  ## @param primary.readinessProbe.enabled Enable readinessProbe on PostgreSQL Primary containers
-  ## @param primary.readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
-  ## @param primary.readinessProbe.periodSeconds Period seconds for readinessProbe
-  ## @param primary.readinessProbe.timeoutSeconds Timeout seconds for readinessProbe
-  ## @param primary.readinessProbe.failureThreshold Failure threshold for readinessProbe
-  ## @param primary.readinessProbe.successThreshold Success threshold for readinessProbe
-  ##
-  readinessProbe:
-    enabled: true
-    initialDelaySeconds: 5
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  ## @param primary.startupProbe.enabled Enable startupProbe on PostgreSQL Primary containers
-  ## @param primary.startupProbe.initialDelaySeconds Initial delay seconds for startupProbe
-  ## @param primary.startupProbe.periodSeconds Period seconds for startupProbe
-  ## @param primary.startupProbe.timeoutSeconds Timeout seconds for startupProbe
-  ## @param primary.startupProbe.failureThreshold Failure threshold for startupProbe
-  ## @param primary.startupProbe.successThreshold Success threshold for startupProbe
-  ##
-  startupProbe:
-    enabled: false
-    initialDelaySeconds: 30
-    periodSeconds: 10
-    timeoutSeconds: 1
-    failureThreshold: 15
-    successThreshold: 1
-  ## @param primary.customLivenessProbe Custom livenessProbe that overrides the default one
-  ##
-  customLivenessProbe: {}
-  ## @param primary.customReadinessProbe Custom readinessProbe that overrides the default one
-  ##
-  customReadinessProbe: {}
-  ## @param primary.customStartupProbe Custom startupProbe that overrides the default one
-  ##
-  customStartupProbe: {}
-  ## @param primary.lifecycleHooks for the PostgreSQL Primary container to automate configuration before or after startup
+  ## @param primary.lifecycleHooks for the MariaDB Primary container(s) to automate configuration before or after startup
   ##
   lifecycleHooks: {}
-  ## PostgreSQL Primary resource requests and limits
-  ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
-  ## @param primary.resources.limits The resources limits for the PostgreSQL Primary containers
-  ## @param primary.resources.requests.memory The requested memory for the PostgreSQL Primary containers
-  ## @param primary.resources.requests.cpu The requested cpu for the PostgreSQL Primary containers
+  ## @param primary.automountServiceAccountToken Mount Service Account token in pod
   ##
-  resources:
-    limits: {}
-    requests:
-      memory: 256Mi
-      cpu: 250m
-  ## Pod Security Context
-  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
-  ## @param primary.podSecurityContext.enabled Enable security context
+  automountServiceAccountToken: false
+  ## @param primary.hostAliases Add deployment host aliases
+  ## https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/
+  ##
+  hostAliases: []
+  ## @param primary.configuration [string] MariaDB Primary configuration to be injected as ConfigMap
+  ## ref: https://mysql.com/kb/en/mysql/configuring-mysql-with-mycnf/#example-of-configuration-file
+  ##
+  configuration: |-
+    [mysqld]
+    skip-name-resolve
+    explicit_defaults_for_timestamp
+    basedir=/opt/bitnami/mariadb
+    datadir=/bitnami/mariadb/data
+    plugin_dir=/opt/bitnami/mariadb/plugin
+    port=3306
+    socket=/opt/bitnami/mariadb/tmp/mysql.sock
+    tmpdir=/opt/bitnami/mariadb/tmp
+    max_allowed_packet=16M
+    bind-address=*
+    pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
+    log-error=/opt/bitnami/mariadb/logs/mysqld.log
+    character-set-server=UTF8
+    collation-server=utf8_general_ci
+    slow_query_log=0
+    long_query_time=10.0
+
+    [client]
+    port=3306
+    socket=/opt/bitnami/mariadb/tmp/mysql.sock
+    default-character-set=UTF8
+    plugin_dir=/opt/bitnami/mariadb/plugin
+
+    [manager]
+    port=3306
+    socket=/opt/bitnami/mariadb/tmp/mysql.sock
+    pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
+  ## @param primary.existingConfigmap Name of existing ConfigMap with MariaDB Primary configuration.
+  ## NOTE: When it's set the 'configuration' parameter is ignored
+  ##
+  existingConfigmap: ""
+  ## @param primary.updateStrategy.type MariaDB primary statefulset strategy type
+  ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies
+  ##
+  updateStrategy:
+    ## StrategyType
+    ## Can be set to RollingUpdate or OnDelete
+    ##
+    type: RollingUpdate
+  ## @param primary.rollingUpdatePartition Partition update strategy for Mariadb Primary statefulset
+  ## https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#partitions
+  ##
+  rollingUpdatePartition: ""
+  ## @param primary.podAnnotations Additional pod annotations for MariaDB primary pods
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  ##
+  podAnnotations: {}
+  ## @param primary.podLabels Extra labels for MariaDB primary pods
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+  ##
+  podLabels: {}
+  ## @param primary.podAffinityPreset MariaDB primary pod affinity preset. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard`
+  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
+  ##
+  podAffinityPreset: ""
+  ## @param primary.podAntiAffinityPreset MariaDB primary pod anti-affinity preset. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard`
+  ## Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
+  ##
+  podAntiAffinityPreset: soft
+  ## Mariadb Primary node affinity preset
+  ## Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
+  ##
+  nodeAffinityPreset:
+    ## @param primary.nodeAffinityPreset.type MariaDB primary node affinity preset type. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard`
+    ##
+    type: ""
+    ## @param primary.nodeAffinityPreset.key MariaDB primary node label key to match Ignored if `primary.affinity` is set.
+    ## E.g.
+    ## key: "kubernetes.io/e2e-az-name"
+    ##
+    key: ""
+    ## @param primary.nodeAffinityPreset.values MariaDB primary node label values to match. Ignored if `primary.affinity` is set.
+    ## E.g.
+    ## values:
+    ##   - e2e-az1
+    ##   - e2e-az2
+    ##
+    values: []
+  ## @param primary.affinity Affinity for MariaDB primary pods assignment
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  ## Note: podAffinityPreset, podAntiAffinityPreset, and  nodeAffinityPreset will be ignored when it's set
+  ##
+  affinity: {}
+  ## @param primary.nodeSelector Node labels for MariaDB primary pods assignment
+  ## Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
+  ##
+  nodeSelector: {}
+  ## @param primary.tolerations Tolerations for MariaDB primary pods assignment
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  ##
+  tolerations: []
+  ## @param primary.schedulerName Name of the k8s scheduler (other than default)
+  ## ref: https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/
+  ##
+  schedulerName: ""
+  ## @param primary.podManagementPolicy podManagementPolicy to manage scaling operation of MariaDB primary pods
+  ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-management-policies
+  ##
+  podManagementPolicy: ""
+  ## @param primary.topologySpreadConstraints Topology Spread Constraints for MariaDB primary pods assignment
+  ## ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/
+  ## E.g.
+  ## topologySpreadConstraints:
+  ##   - maxSkew: 1
+  ##     topologyKey: topology.kubernetes.io/zone
+  ##     whenUnsatisfiable: DoNotSchedule
+  ##
+  topologySpreadConstraints: []
+  ## @param primary.priorityClassName Priority class for MariaDB primary pods assignment
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/
+  ##
+  priorityClassName: ""
+  ## @param primary.runtimeClassName Runtime Class for MariaDB primary pods
+  ## Ref: https://kubernetes.io/docs/concepts/containers/runtime-class/
+  ##
+  runtimeClassName: ""
+  ## MariaDB primary Pod security context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  ## @param primary.podSecurityContext.enabled Enable security context for MariaDB primary pods
   ## @param primary.podSecurityContext.fsGroupChangePolicy Set filesystem group change policy
   ## @param primary.podSecurityContext.sysctls Set kernel settings using the sysctl interface
   ## @param primary.podSecurityContext.supplementalGroups Set filesystem extra groups
-  ## @param primary.podSecurityContext.fsGroup Group ID for the pod
+  ## @param primary.podSecurityContext.fsGroup Group ID for the mounted volumes' filesystem
   ##
   podSecurityContext:
     enabled: true
@@ -462,15 +327,14 @@ primary:
     sysctls: []
     supplementalGroups: []
     fsGroup: 1001
-  ## Container Security Context
-  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
-  ## @param primary.containerSecurityContext.enabled Enabled containers' Security Context
+  ## MariaDB primary container security context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
+  ## @param primary.containerSecurityContext.enabled MariaDB primary container securityContext
   ## @param primary.containerSecurityContext.seLinuxOptions [object,nullable] Set SELinux options in container
-  ## @param primary.containerSecurityContext.runAsUser Set containers' Security Context runAsUser
-  ## @param primary.containerSecurityContext.runAsNonRoot Set container's Security Context runAsNonRoot
-  ## @param primary.containerSecurityContext.privileged Set container's Security Context privileged
-  ## @param primary.containerSecurityContext.readOnlyRootFilesystem Set container's Security Context readOnlyRootFilesystem
-  ## @param primary.containerSecurityContext.allowPrivilegeEscalation Set container's Security Context allowPrivilegeEscalation
+  ## @param primary.containerSecurityContext.runAsUser User ID for the MariaDB primary container
+  ## @param primary.containerSecurityContext.runAsNonRoot Set primary container's Security Context runAsNonRoot
+  ## @param primary.containerSecurityContext.privileged Set primary container's Security Context privileged
+  ## @param primary.containerSecurityContext.allowPrivilegeEscalation Set primary container's Security Context allowPrivilegeEscalation
   ## @param primary.containerSecurityContext.capabilities.drop List of capabilities to be dropped
   ## @param primary.containerSecurityContext.seccompProfile.type Set container's Security Context seccomp profile
   ##
@@ -480,211 +344,194 @@ primary:
     runAsUser: 1001
     runAsNonRoot: true
     privileged: false
-    readOnlyRootFilesystem: false
     allowPrivilegeEscalation: false
     capabilities:
       drop: ["ALL"]
     seccompProfile:
       type: "RuntimeDefault"
-  ## @param primary.automountServiceAccountToken Mount Service Account token in pod
+  ## MariaDB primary container's resource requests and limits
+  ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+  ## We usually recommend not to specify default resources and to leave this as a conscious
+  ## choice for the user. This also increases chances charts run on environments with little
+  ## resources, such as Minikube. If you do want to specify resources, uncomment the following
+  ## lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  ## @param primary.resources.limits The resources limits for MariaDB primary containers
+  ## @param primary.resources.requests The requested resources for MariaDB primary containers
   ##
-  automountServiceAccountToken: false
-  ## @param primary.hostAliases PostgreSQL primary pods host aliases
-  ## https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/
-  ##
-  hostAliases: []
-  ## @param primary.hostNetwork Specify if host network should be enabled for PostgreSQL pod (postgresql primary)
-  ##
-  hostNetwork: false
-  ## @param primary.hostIPC Specify if host IPC should be enabled for PostgreSQL pod (postgresql primary)
-  ##
-  hostIPC: false
-  ## @param primary.labels Map of labels to add to the statefulset (postgresql primary)
-  ##
-  labels: {}
-  ## @param primary.annotations Annotations for PostgreSQL primary pods
-  ##
-  annotations: {}
-  ## @param primary.podLabels Map of labels to add to the pods (postgresql primary)
-  ##
-  podLabels: {}
-  ## @param primary.podAnnotations Map of annotations to add to the pods (postgresql primary)
-  ##
-  podAnnotations: {}
-  ## @param primary.podAffinityPreset PostgreSQL primary pod affinity preset. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard`
-  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
-  ##
-  podAffinityPreset: ""
-  ## @param primary.podAntiAffinityPreset PostgreSQL primary pod anti-affinity preset. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard`
-  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
-  ##
-  podAntiAffinityPreset: soft
-  ## PostgreSQL Primary node affinity preset
-  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
-  ##
-  nodeAffinityPreset:
-    ## @param primary.nodeAffinityPreset.type PostgreSQL primary node affinity preset type. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard`
+  resources:
+    ## Example:
+    # limits:
+    #    cpu: 100m
+    #    memory: 256Mi
     ##
-    type: ""
-    ## @param primary.nodeAffinityPreset.key PostgreSQL primary node label key to match Ignored if `primary.affinity` is set.
-    ## E.g.
-    ## key: "kubernetes.io/e2e-az-name"
+    limits: {}
+    ## Examples:
+    requests:
+       cpu: 100m
+       memory: 256Mi
     ##
-    key: ""
-    ## @param primary.nodeAffinityPreset.values PostgreSQL primary node label values to match. Ignored if `primary.affinity` is set.
-    ## E.g.
-    ## values:
-    ##   - e2e-az1
-    ##   - e2e-az2
+    # requests: {}
+  ## Configure extra options for MariaDB primary containers' liveness, readiness and startup probes
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes)
+  ## @param primary.startupProbe.enabled Enable startupProbe
+  ## @param primary.startupProbe.initialDelaySeconds Initial delay seconds for startupProbe
+  ## @param primary.startupProbe.periodSeconds Period seconds for startupProbe
+  ## @param primary.startupProbe.timeoutSeconds Timeout seconds for startupProbe
+  ## @param primary.startupProbe.failureThreshold Failure threshold for startupProbe
+  ## @param primary.startupProbe.successThreshold Success threshold for startupProbe
+  ##
+  startupProbe:
+    enabled: false
+    initialDelaySeconds: 120
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 10
+    successThreshold: 1
+  ## Configure extra options for liveness probe
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
+  ## @param primary.livenessProbe.enabled Enable livenessProbe
+  ## @param primary.livenessProbe.initialDelaySeconds Initial delay seconds for livenessProbe
+  ## @param primary.livenessProbe.periodSeconds Period seconds for livenessProbe
+  ## @param primary.livenessProbe.timeoutSeconds Timeout seconds for livenessProbe
+  ## @param primary.livenessProbe.failureThreshold Failure threshold for livenessProbe
+  ## @param primary.livenessProbe.successThreshold Success threshold for livenessProbe
+  ##
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 120
+    periodSeconds: 10
+    timeoutSeconds: 1
+    failureThreshold: 3
+    successThreshold: 1
+  ## @param primary.readinessProbe.enabled Enable readinessProbe
+  ## @param primary.readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
+  ## @param primary.readinessProbe.periodSeconds Period seconds for readinessProbe
+  ## @param primary.readinessProbe.timeoutSeconds Timeout seconds for readinessProbe
+  ## @param primary.readinessProbe.failureThreshold Failure threshold for readinessProbe
+  ## @param primary.readinessProbe.successThreshold Success threshold for readinessProbe
+  ##
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 1
+    failureThreshold: 3
+    successThreshold: 1
+  ## @param primary.customStartupProbe Override default startup probe for MariaDB primary containers
+  ##
+  customStartupProbe: {}
+  ## @param primary.customLivenessProbe Override default liveness probe for MariaDB primary containers
+  ##
+  customLivenessProbe: {}
+  ## @param primary.customReadinessProbe Override default readiness probe for MariaDB primary containers
+  ##
+  customReadinessProbe: {}
+  ## @param primary.startupWaitOptions Override default builtin startup wait check options for MariaDB primary containers
+  ## `bitnami/mariadb` Docker image has built-in startup check mechanism,
+  ## which periodically checks if MariaDB service has started up and stops it
+  ## if all checks have failed after X tries. Use these to control these checks.
+  ## ref: https://github.com/bitnami/containers/tree/main/bitnami/mariadb/pull/240
+  ## Example (with default options):
+  ## startupWaitOptions:
+  ##   retries: 300
+  ##   waitTime: 2
+  ##
+  startupWaitOptions: {}
+  ## @param primary.extraFlags MariaDB primary additional command line flags
+  ## Can be used to specify command line flags, for example:
+  ## E.g.
+  ## extraFlags: "--max-connect-errors=1000 --max_connections=155"
+  ##
+  extraFlags: ""
+  ## @param primary.extraEnvVars Extra environment variables to be set on MariaDB primary containers
+  ## E.g.
+  ## extraEnvVars:
+  ##  - name: TZ
+  ##    value: "Europe/Paris"
+  ##
+  extraEnvVars: []
+  ## @param primary.extraEnvVarsCM Name of existing ConfigMap containing extra env vars for MariaDB primary containers
+  ##
+  extraEnvVarsCM: ""
+  ## @param primary.extraEnvVarsSecret Name of existing Secret containing extra env vars for MariaDB primary containers
+  ##
+  extraEnvVarsSecret: ""
+  ## Enable persistence using Persistent Volume Claims
+  ## ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+  ##
+  persistence:
+    ## @param primary.persistence.enabled Enable persistence on MariaDB primary replicas using a `PersistentVolumeClaim`. If false, use emptyDir
     ##
-    values: []
-  ## @param primary.affinity Affinity for PostgreSQL primary pods assignment
-  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
-  ## Note: primary.podAffinityPreset, primary.podAntiAffinityPreset, and primary.nodeAffinityPreset will be ignored when it's set
-  ##
-  affinity: {}
-  ## @param primary.nodeSelector Node labels for PostgreSQL primary pods assignment
-  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
-  ##
-  nodeSelector: {}
-  ## @param primary.tolerations Tolerations for PostgreSQL primary pods assignment
-  ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
-  ##
-  tolerations: []
-  ## @param primary.topologySpreadConstraints Topology Spread Constraints for pod assignment spread across your cluster among failure-domains. Evaluated as a template
-  ## Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/#spread-constraints-for-pods
-  ##
-  topologySpreadConstraints: []
-  ## @param primary.priorityClassName Priority Class to use for each pod (postgresql primary)
-  ##
-  priorityClassName: ""
-  ## @param primary.schedulerName Use an alternate scheduler, e.g. "stork".
-  ## ref: https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/
-  ##
-  schedulerName: ""
-  ## @param primary.terminationGracePeriodSeconds Seconds PostgreSQL primary pod needs to terminate gracefully
-  ## ref: https://kubernetes.io/docs/concepts/workloads/pods/pod/#termination-of-pods
-  ##
-  terminationGracePeriodSeconds: ""
-  ## @param primary.updateStrategy.type PostgreSQL Primary statefulset strategy type
-  ## @param primary.updateStrategy.rollingUpdate PostgreSQL Primary statefulset rolling update configuration parameters
-  ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies
-  ##
-  updateStrategy:
-    type: RollingUpdate
-    rollingUpdate: {}
-  ## @param primary.extraVolumeMounts Optionally specify extra list of additional volumeMounts for the PostgreSQL Primary container(s)
-  ##
-  extraVolumeMounts: []
-  ## @param primary.extraVolumes Optionally specify extra list of additional volumes for the PostgreSQL Primary pod(s)
+    enabled: false
+    ## @param primary.persistence.existingClaim Name of an existing `PersistentVolumeClaim` for MariaDB primary replicas
+    ## NOTE: When it's set the rest of persistence parameters are ignored
+    ##
+    existingClaim: ""
+    ## @param primary.persistence.subPath Subdirectory of the volume to mount at
+    ##
+    subPath: ""
+    ## @param primary.persistence.storageClass MariaDB primary persistent volume storage Class
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    storageClass: ""
+    ## @param primary.persistence.labels Labels for the PVC
+    ##
+    labels: {}
+    ## @param primary.persistence.annotations MariaDB primary persistent volume claim annotations
+    ##
+    annotations: {}
+    ## @param primary.persistence.accessModes MariaDB primary persistent volume access Modes
+    ##
+    accessModes:
+      - ReadWriteOnce
+    ## @param primary.persistence.size MariaDB primary persistent volume size
+    ##
+    size: 8Gi
+    ## @param primary.persistence.selector Selector to match an existing Persistent Volume
+    ## selector:
+    ##   matchLabels:
+    ##     app: my-app
+    ##
+    selector: {}
+  ## @param primary.extraVolumes Optionally specify extra list of additional volumes to the MariaDB Primary pod(s)
   ##
   extraVolumes: []
-  ## @param primary.sidecars Add additional sidecar containers to the PostgreSQL Primary pod(s)
-  ## For example:
-  ## sidecars:
-  ##   - name: your-image-name
-  ##     image: your-image
-  ##     imagePullPolicy: Always
-  ##     ports:
-  ##       - name: portname
-  ##         containerPort: 1234
+  ## @param primary.extraVolumeMounts Optionally specify extra list of additional volumeMounts for the MariaDB Primary container(s)
   ##
-  sidecars: []
-  ## @param primary.initContainers Add additional init containers to the PostgreSQL Primary pod(s)
-  ## Example
-  ##
-  ## initContainers:
-  ##   - name: do-something
-  ##     image: busybox
-  ##     command: ['do', 'something']
+  extraVolumeMounts: []
+  ## @param primary.initContainers Add additional init containers for the MariaDB Primary pod(s)
   ##
   initContainers: []
-  ## @param primary.extraPodSpec Optionally specify extra PodSpec for the PostgreSQL Primary pod(s)
+  ## @param primary.sidecars Add additional sidecar containers for the MariaDB Primary pod(s)
   ##
-  extraPodSpec: {}
-  ## Network Policies
-  ## Ref: https://kubernetes.io/docs/concepts/services-networking/network-policies/
-  ##
-  networkPolicy:
-    ## @param primary.networkPolicy.enabled Specifies whether a NetworkPolicy should be created
-    ##
-    enabled: true
-    ## @param primary.networkPolicy.allowExternal Don't require server label for connections
-    ## The Policy model to apply. When set to false, only pods with the correct
-    ## server label will have network access to the ports server is listening
-    ## on. When true, server will accept connections from any source
-    ## (with the correct destination port).
-    ##
-    allowExternal: true
-    ## @param primary.networkPolicy.allowExternalEgress Allow the pod to access any range of port and all destinations.
-    ##
-    allowExternalEgress: false
-    ## @param primary.networkPolicy.extraIngress [array] Add extra ingress rules to the NetworkPolice
-    ## e.g:
-    ## extraIngress:
-    ##   - ports:
-    ##       - port: 1234
-    ##     from:
-    ##       - podSelector:
-    ##           - matchLabels:
-    ##               - role: frontend
-    ##       - podSelector:
-    ##           - matchExpressions:
-    ##               - key: role
-    ##                 operator: In
-    ##                 values:
-    ##                   - frontend
-    extraIngress: []
-    ## @param primary.networkPolicy.extraEgress [array] Add extra ingress rules to the NetworkPolicy
-    ## e.g:
-    ## extraEgress:
-    ##   - ports:
-    ##       - port: 1234
-    ##     to:
-    ##       - podSelector:
-    ##           - matchLabels:
-    ##               - role: frontend
-    ##       - podSelector:
-    ##           - matchExpressions:
-    ##               - key: role
-    ##                 operator: In
-    ##                 values:
-    ##                   - frontend
-    ##
-    extraEgress: []
-    ## @param primary.networkPolicy.ingressNSMatchLabels [object] Labels to match to allow traffic from other namespaces
-    ## @param primary.networkPolicy.ingressNSPodMatchLabels [object] Pod labels to match to allow traffic from other namespaces
-    ##
-    ingressNSMatchLabels: {}
-    ingressNSPodMatchLabels: {}
-  ## PostgreSQL Primary service configuration
+  sidecars: []
+  ## MariaDB Primary Service parameters
   ##
   service:
-    ## @param primary.service.type Kubernetes Service type
+    ## @param primary.service.type MariaDB Primary Kubernetes service type
     ##
     name: "orders-db"
     type: ClusterIP
-    ## @param primary.service.ports.postgresql PostgreSQL service port
-    ##
     ports:
-      postgresql: 5432
-    ## Node ports to expose
-    ## NOTE: choose port between <30000-32767>
-    ## @param primary.service.nodePorts.postgresql Node port for PostgreSQL
+      ## @param primary.service.ports.mysql MariaDB Primary Kubernetes service port for MariaDB
+      ##
+      mysql: 3306
+      ## @param primary.service.ports.metrics MariaDB Primary Kubernetes service port for metrics
+      ##
+      metrics: 9104
+    ## @param primary.service.nodePorts.mysql MariaDB Primary Kubernetes service node port
     ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
     ##
     nodePorts:
-      postgresql: ""
-    ## @param primary.service.clusterIP Static clusterIP or None for headless services
-    ## e.g:
-    ## clusterIP: None
+      mysql: ""
+    ## @param primary.service.clusterIP MariaDB Primary Kubernetes service clusterIP IP
     ##
     clusterIP: ""
-    ## @param primary.service.annotations Annotations for PostgreSQL primary service
-    ##
-    annotations: {}
-    ## @param primary.service.loadBalancerIP Load balancer IP if service type is `LoadBalancer`
-    ## Set the LoadBalancer service type to internal only
+    ## @param primary.service.loadBalancerIP MariaDB Primary loadBalancerIP if service type is `LoadBalancer`
     ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#internal-load-balancer
     ##
     loadBalancerIP: ""
@@ -692,16 +539,19 @@ primary:
     ## ref https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip
     ##
     externalTrafficPolicy: Cluster
-    ## @param primary.service.loadBalancerSourceRanges Addresses that are allowed when service is LoadBalancer
+    ## @param primary.service.loadBalancerSourceRanges Address that are allowed when MariaDB Primary service is LoadBalancer
     ## https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/#restrict-access-for-loadbalancer-service
-    ##
+    ## E.g.
     ## loadBalancerSourceRanges:
-    ## - 10.10.10.0/24
+    ##   - 10.10.10.0/24
     ##
     loadBalancerSourceRanges: []
-    ## @param primary.service.extraPorts Extra ports to expose in the PostgreSQL primary service
+    ## @param primary.service.extraPorts Extra ports to expose (normally used with the `sidecar` value)
     ##
     extraPorts: []
+    ## @param primary.service.annotations Provide any additional annotations which may be required
+    ##
+    annotations: {}
     ## @param primary.service.sessionAffinity Session Affinity for Kubernetes service, can be "None" or "ClientIP"
     ## If "ClientIP", consecutive client requests will be directed to the same Pod
     ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies
@@ -713,179 +563,177 @@ primary:
     ##     timeoutSeconds: 300
     ##
     sessionAffinityConfig: {}
-    ## Headless service properties
-    ##
-    headless:
-      ## @param primary.service.headless.annotations Additional custom annotations for headless PostgreSQL primary service
-      ##
-      annotations: {}
-  ## PostgreSQL Primary persistence configuration
+  ## MariaDB primary Pod Disruption Budget configuration
+  ## ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
   ##
-  persistence:
-    ## @param primary.persistence.enabled Enable PostgreSQL Primary data persistence using PVC
+  pdb:
+    ## @param primary.pdb.create Enable/disable a Pod Disruption Budget creation for MariaDB primary pods
     ##
-    enabled: false
-    ## @param primary.persistence.existingClaim Name of an existing PVC to use
+    create: false
+    ## @param primary.pdb.minAvailable Minimum number/percentage of MariaDB primary pods that must still be available after the eviction
     ##
-    existingClaim: ""
-    ## @param primary.persistence.mountPath The path the volume will be mounted at
-    ## Note: useful when using custom PostgreSQL images
+    minAvailable: 1
+    ## @param primary.pdb.maxUnavailable Maximum number/percentage of MariaDB primary pods that can be unavailable after the eviction
     ##
-    mountPath: /bitnami/postgresql
-    ## @param primary.persistence.subPath The subdirectory of the volume to mount to
-    ## Useful in dev environments and one PV for multiple services
-    ##
-    subPath: ""
-    ## @param primary.persistence.storageClass PVC Storage Class for PostgreSQL Primary data volume
-    ## If defined, storageClassName: <storageClass>
-    ## If set to "-", storageClassName: "", which disables dynamic provisioning
-    ## If undefined (the default) or set to null, no storageClassName spec is
-    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
-    ##   GKE, AWS & OpenStack)
-    ##
-    storageClass: ""
-    ## @param primary.persistence.accessModes PVC Access Mode for PostgreSQL volume
-    ##
-    accessModes:
-      - ReadWriteOnce
-    ## @param primary.persistence.size PVC Storage Request for PostgreSQL volume
-    ##
-    size: 8Gi
-    ## @param primary.persistence.annotations Annotations for the PVC
-    ##
-    annotations: {}
-    ## @param primary.persistence.labels Labels for the PVC
-    ##
-    labels: {}
-    ## @param primary.persistence.selector Selector to match an existing Persistent Volume (this value is evaluated as a template)
-    ## selector:
-    ##   matchLabels:
-    ##     app: my-app
-    ##
-    selector: {}
-    ## @param primary.persistence.dataSource Custom PVC data source
-    ##
-    dataSource: {}
-  ## PostgreSQL Primary Persistent Volume Claim Retention Policy
-  ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention
+    maxUnavailable: ""
+  ## @param primary.revisionHistoryLimit Maximum number of revisions that will be maintained in the StatefulSet
   ##
-  persistentVolumeClaimRetentionPolicy:
-    ## @param primary.persistentVolumeClaimRetentionPolicy.enabled Enable Persistent volume retention policy for Primary Statefulset
-    ##
-    enabled: false
-    ## @param primary.persistentVolumeClaimRetentionPolicy.whenScaled Volume retention behavior when the replica count of the StatefulSet is reduced
-    ##
-    whenScaled: Retain
-    ## @param primary.persistentVolumeClaimRetentionPolicy.whenDeleted Volume retention behavior that applies when the StatefulSet is deleted
-    ##
-    whenDeleted: Retain
+  revisionHistoryLimit: 10
 
-## @section PostgreSQL read only replica parameters (only used when `architecture` is set to `replication`)
+## @section MariaDB Secondary parameters
 ##
-readReplicas:
-  ## @param readReplicas.name Name of the read replicas database (eg secondary, slave, ...)
+
+## Mariadb Secondary parameters
+##
+secondary:
+  ## @param secondary.name Name of the secondary database (eg secondary, slave, ...)
   ##
-  name: read
-  ## @param readReplicas.replicaCount Number of PostgreSQL read only replicas
+  name: secondary
+  ## @param secondary.replicaCount Number of MariaDB secondary replicas
   ##
   replicaCount: 1
-  ## @param readReplicas.extendedConfiguration Extended PostgreSQL read only replicas configuration (appended to main or default configuration)
-  ## ref: https://github.com/bitnami/containers/tree/main/bitnami/postgresql#allow-settings-to-be-loaded-from-files-other-than-the-default-postgresqlconf
-  ##
-  extendedConfiguration: ""
-  ## @param readReplicas.extraEnvVars Array with extra environment variables to add to PostgreSQL read only nodes
-  ## e.g:
-  ## extraEnvVars:
-  ##   - name: FOO
-  ##     value: "bar"
-  ##
-  extraEnvVars: []
-  ## @param readReplicas.extraEnvVarsCM Name of existing ConfigMap containing extra env vars for PostgreSQL read only nodes
-  ##
-  extraEnvVarsCM: ""
-  ## @param readReplicas.extraEnvVarsSecret Name of existing Secret containing extra env vars for PostgreSQL read only nodes
-  ##
-  extraEnvVarsSecret: ""
-  ## @param readReplicas.command Override default container command (useful when using custom images)
+  ## @param secondary.command Override default container command on MariaDB Secondary container(s) (useful when using custom images)
   ##
   command: []
-  ## @param readReplicas.args Override default container args (useful when using custom images)
+  ## @param secondary.args Override default container args on MariaDB Secondary container(s) (useful when using custom images)
   ##
   args: []
-  ## Configure extra options for PostgreSQL read only containers' liveness, readiness and startup probes
-  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
-  ## @param readReplicas.livenessProbe.enabled Enable livenessProbe on PostgreSQL read only containers
-  ## @param readReplicas.livenessProbe.initialDelaySeconds Initial delay seconds for livenessProbe
-  ## @param readReplicas.livenessProbe.periodSeconds Period seconds for livenessProbe
-  ## @param readReplicas.livenessProbe.timeoutSeconds Timeout seconds for livenessProbe
-  ## @param readReplicas.livenessProbe.failureThreshold Failure threshold for livenessProbe
-  ## @param readReplicas.livenessProbe.successThreshold Success threshold for livenessProbe
-  ##
-  livenessProbe:
-    enabled: true
-    initialDelaySeconds: 30
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  ## @param readReplicas.readinessProbe.enabled Enable readinessProbe on PostgreSQL read only containers
-  ## @param readReplicas.readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
-  ## @param readReplicas.readinessProbe.periodSeconds Period seconds for readinessProbe
-  ## @param readReplicas.readinessProbe.timeoutSeconds Timeout seconds for readinessProbe
-  ## @param readReplicas.readinessProbe.failureThreshold Failure threshold for readinessProbe
-  ## @param readReplicas.readinessProbe.successThreshold Success threshold for readinessProbe
-  ##
-  readinessProbe:
-    enabled: true
-    initialDelaySeconds: 5
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  ## @param readReplicas.startupProbe.enabled Enable startupProbe on PostgreSQL read only containers
-  ## @param readReplicas.startupProbe.initialDelaySeconds Initial delay seconds for startupProbe
-  ## @param readReplicas.startupProbe.periodSeconds Period seconds for startupProbe
-  ## @param readReplicas.startupProbe.timeoutSeconds Timeout seconds for startupProbe
-  ## @param readReplicas.startupProbe.failureThreshold Failure threshold for startupProbe
-  ## @param readReplicas.startupProbe.successThreshold Success threshold for startupProbe
-  ##
-  startupProbe:
-    enabled: false
-    initialDelaySeconds: 30
-    periodSeconds: 10
-    timeoutSeconds: 1
-    failureThreshold: 15
-    successThreshold: 1
-  ## @param readReplicas.customLivenessProbe Custom livenessProbe that overrides the default one
-  ##
-  customLivenessProbe: {}
-  ## @param readReplicas.customReadinessProbe Custom readinessProbe that overrides the default one
-  ##
-  customReadinessProbe: {}
-  ## @param readReplicas.customStartupProbe Custom startupProbe that overrides the default one
-  ##
-  customStartupProbe: {}
-  ## @param readReplicas.lifecycleHooks for the PostgreSQL read only container to automate configuration before or after startup
+  ## @param secondary.lifecycleHooks for the MariaDB Secondary container(s) to automate configuration before or after startup
   ##
   lifecycleHooks: {}
-  ## PostgreSQL read only resource requests and limits
-  ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
-  ## @param readReplicas.resources.limits The resources limits for the PostgreSQL read only containers
-  ## @param readReplicas.resources.requests.memory The requested memory for the PostgreSQL read only containers
-  ## @param readReplicas.resources.requests.cpu The requested cpu for the PostgreSQL read only containers
+  ## @param secondary.automountServiceAccountToken Mount Service Account token in pod
   ##
-  resources:
-    limits: {}
-    requests:
-      memory: 256Mi
-      cpu: 250m
-  ## Pod Security Context
-  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
-  ## @param readReplicas.podSecurityContext.enabled Enable security context
-  ## @param readReplicas.podSecurityContext.fsGroupChangePolicy Set filesystem group change policy
-  ## @param readReplicas.podSecurityContext.sysctls Set kernel settings using the sysctl interface
-  ## @param readReplicas.podSecurityContext.supplementalGroups Set filesystem extra groups
-  ## @param readReplicas.podSecurityContext.fsGroup Group ID for the pod
+  automountServiceAccountToken: false
+  ## @param secondary.hostAliases Add deployment host aliases
+  ## https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/
+  ##
+  hostAliases: []
+  ## @param secondary.configuration [string] MariaDB Secondary configuration to be injected as ConfigMap
+  ## ref: https://mysql.com/kb/en/mysql/configuring-mysql-with-mycnf/#example-of-configuration-file
+  ##
+  configuration: |-
+    [mysqld]
+    skip-name-resolve
+    explicit_defaults_for_timestamp
+    basedir=/opt/bitnami/mariadb
+    datadir=/bitnami/mariadb/data
+    port=3306
+    socket=/opt/bitnami/mariadb/tmp/mysql.sock
+    tmpdir=/opt/bitnami/mariadb/tmp
+    max_allowed_packet=16M
+    bind-address=0.0.0.0
+    pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
+    log-error=/opt/bitnami/mariadb/logs/mysqld.log
+    character-set-server=UTF8
+    collation-server=utf8_general_ci
+    slow_query_log=0
+    long_query_time=10.0
+
+    [client]
+    port=3306
+    socket=/opt/bitnami/mariadb/tmp/mysql.sock
+    default-character-set=UTF8
+
+    [manager]
+    port=3306
+    socket=/opt/bitnami/mariadb/tmp/mysql.sock
+    pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
+  ## @param secondary.existingConfigmap Name of existing ConfigMap with MariaDB Secondary configuration.
+  ## NOTE: When it's set the 'configuration' parameter is ignored
+  ##
+  existingConfigmap: ""
+  ## @param secondary.updateStrategy.type MariaDB secondary statefulset strategy type
+  ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies
+  ##
+  updateStrategy:
+    ## StrategyType
+    ## Can be set to RollingUpdate or OnDelete
+    ##
+    type: RollingUpdate
+  ## @param secondary.rollingUpdatePartition Partition update strategy for Mariadb Secondary statefulset
+  ## https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#partitions
+  ##
+  rollingUpdatePartition: ""
+  ## @param secondary.podAnnotations Additional pod annotations for MariaDB secondary pods
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  ##
+  podAnnotations: {}
+  ## @param secondary.podLabels Extra labels for MariaDB secondary pods
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+  ##
+  podLabels: {}
+  ## @param secondary.podAffinityPreset MariaDB secondary pod affinity preset. Ignored if `secondary.affinity` is set. Allowed values: `soft` or `hard`
+  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
+  ##
+  podAffinityPreset: ""
+  ## @param secondary.podAntiAffinityPreset MariaDB secondary pod anti-affinity preset. Ignored if `secondary.affinity` is set. Allowed values: `soft` or `hard`
+  ## Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
+  ##
+  podAntiAffinityPreset: soft
+  ## Mariadb Secondary node affinity preset
+  ## Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
+  ##
+  nodeAffinityPreset:
+    ## @param secondary.nodeAffinityPreset.type MariaDB secondary node affinity preset type. Ignored if `secondary.affinity` is set. Allowed values: `soft` or `hard`
+    ##
+    type: ""
+    ## @param secondary.nodeAffinityPreset.key MariaDB secondary node label key to match Ignored if `secondary.affinity` is set.
+    ## E.g.
+    ## key: "kubernetes.io/e2e-az-name"
+    ##
+    key: ""
+    ## @param secondary.nodeAffinityPreset.values MariaDB secondary node label values to match. Ignored if `secondary.affinity` is set.
+    ## E.g.
+    ## values:
+    ##   - e2e-az1
+    ##   - e2e-az2
+    ##
+    values: []
+  ## @param secondary.affinity Affinity for MariaDB secondary pods assignment
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  ## Note: podAffinityPreset, podAntiAffinityPreset, and  nodeAffinityPreset will be ignored when it's set
+  ##
+  affinity: {}
+  ## @param secondary.nodeSelector Node labels for MariaDB secondary pods assignment
+  ## Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
+  ##
+  nodeSelector: {}
+  ## @param secondary.tolerations Tolerations for MariaDB secondary pods assignment
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  ##
+  tolerations: []
+  ## @param secondary.topologySpreadConstraints Topology Spread Constraints for MariaDB secondary pods assignment
+  ## ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/
+  ## E.g.
+  ## topologySpreadConstraints:
+  ##   - maxSkew: 1
+  ##     topologyKey: topology.kubernetes.io/zone
+  ##     whenUnsatisfiable: DoNotSchedule
+  ##
+  topologySpreadConstraints: []
+  ## @param secondary.priorityClassName Priority class for MariaDB secondary pods assignment
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/
+  ##
+  priorityClassName: ""
+  ## @param secondary.runtimeClassName Runtime Class for MariaDB secondary pods
+  ## Ref: https://kubernetes.io/docs/concepts/containers/runtime-class/
+  ##
+  runtimeClassName: ""
+  ## @param secondary.schedulerName Name of the k8s scheduler (other than default)
+  ## ref: https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/
+  ##
+  schedulerName: ""
+  ## @param secondary.podManagementPolicy podManagementPolicy to manage scaling operation of MariaDB secondary pods
+  ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-management-policies
+  ##
+  podManagementPolicy: ""
+  ## MariaDB secondary Pod security context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  ## @param secondary.podSecurityContext.enabled Enable security context for MariaDB secondary pods
+  ## @param secondary.podSecurityContext.fsGroupChangePolicy Set filesystem group change policy
+  ## @param secondary.podSecurityContext.sysctls Set kernel settings using the sysctl interface
+  ## @param secondary.podSecurityContext.supplementalGroups Set filesystem extra groups
+  ## @param secondary.podSecurityContext.fsGroup Group ID for the mounted volumes' filesystem
   ##
   podSecurityContext:
     enabled: true
@@ -893,17 +741,16 @@ readReplicas:
     sysctls: []
     supplementalGroups: []
     fsGroup: 1001
-  ## Container Security Context
-  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
-  ## @param readReplicas.containerSecurityContext.enabled Enabled containers' Security Context
-  ## @param readReplicas.containerSecurityContext.seLinuxOptions [object,nullable] Set SELinux options in container
-  ## @param readReplicas.containerSecurityContext.runAsUser Set containers' Security Context runAsUser
-  ## @param readReplicas.containerSecurityContext.runAsNonRoot Set container's Security Context runAsNonRoot
-  ## @param readReplicas.containerSecurityContext.privileged Set container's Security Context privileged
-  ## @param readReplicas.containerSecurityContext.readOnlyRootFilesystem Set container's Security Context readOnlyRootFilesystem
-  ## @param readReplicas.containerSecurityContext.allowPrivilegeEscalation Set container's Security Context allowPrivilegeEscalation
-  ## @param readReplicas.containerSecurityContext.capabilities.drop List of capabilities to be dropped
-  ## @param readReplicas.containerSecurityContext.seccompProfile.type Set container's Security Context seccomp profile
+  ## MariaDB secondary container security context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
+  ## @param secondary.containerSecurityContext.enabled MariaDB secondary container securityContext
+  ## @param secondary.containerSecurityContext.seLinuxOptions [object,nullable] Set SELinux options in container
+  ## @param secondary.containerSecurityContext.runAsUser User ID for the MariaDB secondary container
+  ## @param secondary.containerSecurityContext.runAsNonRoot Set secondary container's Security Context runAsNonRoot
+  ## @param secondary.containerSecurityContext.privileged Set secondary container's Security Context privileged
+  ## @param secondary.containerSecurityContext.allowPrivilegeEscalation Set secondary container's Security Context allowPrivilegeEscalation
+  ## @param secondary.containerSecurityContext.capabilities.drop List of capabilities to be dropped
+  ## @param secondary.containerSecurityContext.seccompProfile.type Set container's Security Context seccomp profile
   ##
   containerSecurityContext:
     enabled: true
@@ -911,262 +758,129 @@ readReplicas:
     runAsUser: 1001
     runAsNonRoot: true
     privileged: false
-    readOnlyRootFilesystem: false
     allowPrivilegeEscalation: false
     capabilities:
       drop: ["ALL"]
     seccompProfile:
       type: "RuntimeDefault"
-  ## @param readReplicas.automountServiceAccountToken Mount Service Account token in pod
+  ## MariaDB secondary container's resource requests and limits
+  ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+  ## We usually recommend not to specify default resources and to leave this as a conscious
+  ## choice for the user. This also increases chances charts run on environments with little
+  ## resources, such as Minikube. If you do want to specify resources, uncomment the following
+  ## lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  ## @param secondary.resources.limits The resources limits for MariaDB secondary containers
+  ## @param secondary.resources.requests The requested resources for MariaDB secondary containers
   ##
-  automountServiceAccountToken: false
-  ## @param readReplicas.hostAliases PostgreSQL read only pods host aliases
-  ## https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/
-  ##
-  hostAliases: []
-  ## @param readReplicas.hostNetwork Specify if host network should be enabled for PostgreSQL pod (PostgreSQL read only)
-  ##
-  hostNetwork: false
-  ## @param readReplicas.hostIPC Specify if host IPC should be enabled for PostgreSQL pod (postgresql primary)
-  ##
-  hostIPC: false
-  ## @param readReplicas.labels Map of labels to add to the statefulset (PostgreSQL read only)
-  ##
-  labels: {}
-  ## @param readReplicas.annotations Annotations for PostgreSQL read only pods
-  ##
-  annotations: {}
-  ## @param readReplicas.podLabels Map of labels to add to the pods (PostgreSQL read only)
-  ##
-  podLabels: {}
-  ## @param readReplicas.podAnnotations Map of annotations to add to the pods (PostgreSQL read only)
-  ##
-  podAnnotations: {}
-  ## @param readReplicas.podAffinityPreset PostgreSQL read only pod affinity preset. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard`
-  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
-  ##
-  podAffinityPreset: ""
-  ## @param readReplicas.podAntiAffinityPreset PostgreSQL read only pod anti-affinity preset. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard`
-  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
-  ##
-  podAntiAffinityPreset: soft
-  ## PostgreSQL read only node affinity preset
-  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
-  ##
-  nodeAffinityPreset:
-    ## @param readReplicas.nodeAffinityPreset.type PostgreSQL read only node affinity preset type. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard`
+  resources:
+    ## Example:
+    ## limits:
+    ##    cpu: 100m
+    ##    memory: 256Mi
     ##
-    type: ""
-    ## @param readReplicas.nodeAffinityPreset.key PostgreSQL read only node label key to match Ignored if `primary.affinity` is set.
-    ## E.g.
-    ## key: "kubernetes.io/e2e-az-name"
+    limits: {}
+    ## Examples:
+    requests:
+       cpu: 100m
+       memory: 256Mi
     ##
-    key: ""
-    ## @param readReplicas.nodeAffinityPreset.values PostgreSQL read only node label values to match. Ignored if `primary.affinity` is set.
-    ## E.g.
-    ## values:
-    ##   - e2e-az1
-    ##   - e2e-az2
-    ##
-    values: []
-  ## @param readReplicas.affinity Affinity for PostgreSQL read only pods assignment
-  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
-  ## Note: primary.podAffinityPreset, primary.podAntiAffinityPreset, and primary.nodeAffinityPreset will be ignored when it's set
+    # requests: {}
+  ## Configure extra options for MariaDB Secondary containers' liveness, readiness and startup probes
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes)
+  ## @param secondary.startupProbe.enabled Enable startupProbe
+  ## @param secondary.startupProbe.initialDelaySeconds Initial delay seconds for startupProbe
+  ## @param secondary.startupProbe.periodSeconds Period seconds for startupProbe
+  ## @param secondary.startupProbe.timeoutSeconds Timeout seconds for startupProbe
+  ## @param secondary.startupProbe.failureThreshold Failure threshold for startupProbe
+  ## @param secondary.startupProbe.successThreshold Success threshold for startupProbe
   ##
-  affinity: {}
-  ## @param readReplicas.nodeSelector Node labels for PostgreSQL read only pods assignment
-  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
+  startupProbe:
+    enabled: false
+    initialDelaySeconds: 120
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 10
+    successThreshold: 1
+  ## Configure extra options for liveness probe
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
+  ## @param secondary.livenessProbe.enabled Enable livenessProbe
+  ## @param secondary.livenessProbe.initialDelaySeconds Initial delay seconds for livenessProbe
+  ## @param secondary.livenessProbe.periodSeconds Period seconds for livenessProbe
+  ## @param secondary.livenessProbe.timeoutSeconds Timeout seconds for livenessProbe
+  ## @param secondary.livenessProbe.failureThreshold Failure threshold for livenessProbe
+  ## @param secondary.livenessProbe.successThreshold Success threshold for livenessProbe
   ##
-  nodeSelector: {}
-  ## @param readReplicas.tolerations Tolerations for PostgreSQL read only pods assignment
-  ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
-  ##
-  tolerations: []
-  ## @param readReplicas.topologySpreadConstraints Topology Spread Constraints for pod assignment spread across your cluster among failure-domains. Evaluated as a template
-  ## Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/#spread-constraints-for-pods
-  ##
-  topologySpreadConstraints: []
-  ## @param readReplicas.priorityClassName Priority Class to use for each pod (PostgreSQL read only)
-  ##
-  priorityClassName: ""
-  ## @param readReplicas.schedulerName Use an alternate scheduler, e.g. "stork".
-  ## ref: https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/
-  ##
-  schedulerName: ""
-  ## @param readReplicas.terminationGracePeriodSeconds Seconds PostgreSQL read only pod needs to terminate gracefully
-  ## ref: https://kubernetes.io/docs/concepts/workloads/pods/pod/#termination-of-pods
-  ##
-  terminationGracePeriodSeconds: ""
-  ## @param readReplicas.updateStrategy.type PostgreSQL read only statefulset strategy type
-  ## @param readReplicas.updateStrategy.rollingUpdate PostgreSQL read only statefulset rolling update configuration parameters
-  ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies
-  ##
-  updateStrategy:
-    type: RollingUpdate
-    rollingUpdate: {}
-  ## @param readReplicas.extraVolumeMounts Optionally specify extra list of additional volumeMounts for the PostgreSQL read only container(s)
-  ##
-  extraVolumeMounts: []
-  ## @param readReplicas.extraVolumes Optionally specify extra list of additional volumes for the PostgreSQL read only pod(s)
-  ##
-  extraVolumes: []
-  ## @param readReplicas.sidecars Add additional sidecar containers to the PostgreSQL read only pod(s)
-  ## For example:
-  ## sidecars:
-  ##   - name: your-image-name
-  ##     image: your-image
-  ##     imagePullPolicy: Always
-  ##     ports:
-  ##       - name: portname
-  ##         containerPort: 1234
-  ##
-  sidecars: []
-  ## @param readReplicas.initContainers Add additional init containers to the PostgreSQL read only pod(s)
-  ## Example
-  ##
-  ## initContainers:
-  ##   - name: do-something
-  ##     image: busybox
-  ##     command: ['do', 'something']
-  ##
-  initContainers: []
-  ## @param readReplicas.extraPodSpec Optionally specify extra PodSpec for the PostgreSQL read only pod(s)
-  ##
-  extraPodSpec: {}
-  ## Network Policies
-  ## Ref: https://kubernetes.io/docs/concepts/services-networking/network-policies/
-  ##
-  networkPolicy:
-    ## @param readReplicas.networkPolicy.enabled Specifies whether a NetworkPolicy should be created
-    ##
+  livenessProbe:
     enabled: true
-    ## @param readReplicas.networkPolicy.allowExternal Don't require server label for connections
-    ## The Policy model to apply. When set to false, only pods with the correct
-    ## server label will have network access to the ports server is listening
-    ## on. When true, server will accept connections from any source
-    ## (with the correct destination port).
-    ##
-    allowExternal: true
-    ## @param readReplicas.networkPolicy.allowExternalEgress Allow the pod to access any range of port and all destinations.
-    ##
-    allowExternalEgress: false
-    ## @param readReplicas.networkPolicy.extraIngress [array] Add extra ingress rules to the NetworkPolice
-    ## e.g:
-    ## extraIngress:
-    ##   - ports:
-    ##       - port: 1234
-    ##     from:
-    ##       - podSelector:
-    ##           - matchLabels:
-    ##               - role: frontend
-    ##       - podSelector:
-    ##           - matchExpressions:
-    ##               - key: role
-    ##                 operator: In
-    ##                 values:
-    ##                   - frontend
-    extraIngress: []
-    ## @param readReplicas.networkPolicy.extraEgress [array] Add extra ingress rules to the NetworkPolicy
-    ## e.g:
-    ## extraEgress:
-    ##   - ports:
-    ##       - port: 1234
-    ##     to:
-    ##       - podSelector:
-    ##           - matchLabels:
-    ##               - role: frontend
-    ##       - podSelector:
-    ##           - matchExpressions:
-    ##               - key: role
-    ##                 operator: In
-    ##                 values:
-    ##                   - frontend
-    ##
-    extraEgress: []
-    ## @param readReplicas.networkPolicy.ingressNSMatchLabels [object] Labels to match to allow traffic from other namespaces
-    ## @param readReplicas.networkPolicy.ingressNSPodMatchLabels [object] Pod labels to match to allow traffic from other namespaces
-    ##
-    ingressNSMatchLabels: {}
-    ingressNSPodMatchLabels: {}
-  ## PostgreSQL read only service configuration
+    initialDelaySeconds: 120
+    periodSeconds: 10
+    timeoutSeconds: 1
+    failureThreshold: 3
+    successThreshold: 1
+  ## @param secondary.readinessProbe.enabled Enable readinessProbe
+  ## @param secondary.readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
+  ## @param secondary.readinessProbe.periodSeconds Period seconds for readinessProbe
+  ## @param secondary.readinessProbe.timeoutSeconds Timeout seconds for readinessProbe
+  ## @param secondary.readinessProbe.failureThreshold Failure threshold for readinessProbe
+  ## @param secondary.readinessProbe.successThreshold Success threshold for readinessProbe
   ##
-  service:
-    ## @param readReplicas.service.type Kubernetes Service type
-    ##
-    type: ClusterIP
-    ## @param readReplicas.service.ports.postgresql PostgreSQL service port
-    ##
-    ports:
-      postgresql: 5432
-    ## Node ports to expose
-    ## NOTE: choose port between <30000-32767>
-    ## @param readReplicas.service.nodePorts.postgresql Node port for PostgreSQL
-    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
-    ##
-    nodePorts:
-      postgresql: ""
-    ## @param readReplicas.service.clusterIP Static clusterIP or None for headless services
-    ## e.g:
-    ## clusterIP: None
-    ##
-    clusterIP: ""
-    ## @param readReplicas.service.annotations Annotations for PostgreSQL read only service
-    ##
-    annotations: {}
-    ## @param readReplicas.service.loadBalancerIP Load balancer IP if service type is `LoadBalancer`
-    ## Set the LoadBalancer service type to internal only
-    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#internal-load-balancer
-    ##
-    loadBalancerIP: ""
-    ## @param readReplicas.service.externalTrafficPolicy Enable client source IP preservation
-    ## ref https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip
-    ##
-    externalTrafficPolicy: Cluster
-    ## @param readReplicas.service.loadBalancerSourceRanges Addresses that are allowed when service is LoadBalancer
-    ## https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/#restrict-access-for-loadbalancer-service
-    ##
-    ## loadBalancerSourceRanges:
-    ## - 10.10.10.0/24
-    ##
-    loadBalancerSourceRanges: []
-    ## @param readReplicas.service.extraPorts Extra ports to expose in the PostgreSQL read only service
-    ##
-    extraPorts: []
-    ## @param readReplicas.service.sessionAffinity Session Affinity for Kubernetes service, can be "None" or "ClientIP"
-    ## If "ClientIP", consecutive client requests will be directed to the same Pod
-    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies
-    ##
-    sessionAffinity: None
-    ## @param readReplicas.service.sessionAffinityConfig Additional settings for the sessionAffinity
-    ## sessionAffinityConfig:
-    ##   clientIP:
-    ##     timeoutSeconds: 300
-    ##
-    sessionAffinityConfig: {}
-    ## Headless service properties
-    ##
-    headless:
-      ## @param readReplicas.service.headless.annotations Additional custom annotations for headless PostgreSQL read only service
-      ##
-      annotations: {}
-  ## PostgreSQL read only persistence configuration
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 1
+    failureThreshold: 3
+    successThreshold: 1
+  ## @param secondary.customStartupProbe Override default startup probe for MariaDB secondary containers
+  ##
+  customStartupProbe: {}
+  ## @param secondary.customLivenessProbe Override default liveness probe for MariaDB secondary containers
+  ##
+  customLivenessProbe: {}
+  ## @param secondary.customReadinessProbe Override default readiness probe for MariaDB secondary containers
+  ##
+  customReadinessProbe: {}
+  ## @param secondary.startupWaitOptions Override default builtin startup wait check options for MariaDB secondary containers
+  ## `bitnami/mariadb` Docker image has built-in startup check mechanism,
+  ## which periodically checks if MariaDB service has started up and stops it
+  ## if all checks have failed after X tries. Use these to control these checks.
+  ## ref: https://github.com/bitnami/containers/tree/main/bitnami/mariadb/pull/240
+  ## Example (with default options):
+  ## startupWaitOptions:
+  ##   retries: 300
+  ##   waitTime: 2
+  ##
+  startupWaitOptions: {}
+  ## @param secondary.extraFlags MariaDB secondary additional command line flags
+  ## Can be used to specify command line flags, for example:
+  ## E.g.
+  ## extraFlags: "--max-connect-errors=1000 --max_connections=155"
+  ##
+  extraFlags: ""
+  ## @param secondary.extraEnvVars Extra environment variables to be set on MariaDB secondary containers
+  ## E.g.
+  ## extraEnvVars:
+  ##  - name: TZ
+  ##    value: "Europe/Paris"
+  ##
+  extraEnvVars: []
+  ## @param secondary.extraEnvVarsCM Name of existing ConfigMap containing extra env vars for MariaDB secondary containers
+  ##
+  extraEnvVarsCM: ""
+  ## @param secondary.extraEnvVarsSecret Name of existing Secret containing extra env vars for MariaDB secondary containers
+  ##
+  extraEnvVarsSecret: ""
+  ## Enable persistence using Persistent Volume Claims
+  ## ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
   ##
   persistence:
-    ## @param readReplicas.persistence.enabled Enable PostgreSQL read only data persistence using PVC
+    ## @param secondary.persistence.enabled Enable persistence on MariaDB secondary replicas using a `PersistentVolumeClaim`
     ##
     enabled: false
-    ## @param readReplicas.persistence.existingClaim Name of an existing PVC to use
-    ##
-    existingClaim: ""
-    ## @param readReplicas.persistence.mountPath The path the volume will be mounted at
-    ## Note: useful when using custom PostgreSQL images
-    ##
-    mountPath: /bitnami/postgresql
-    ## @param readReplicas.persistence.subPath The subdirectory of the volume to mount to
-    ## Useful in dev environments and one PV for multiple services
+    ## @param secondary.persistence.subPath Subdirectory of the volume to mount at
     ##
     subPath: ""
-    ## @param readReplicas.persistence.storageClass PVC Storage Class for PostgreSQL read only data volume
+    ## @param secondary.persistence.storageClass MariaDB secondary persistent volume storage Class
     ## If defined, storageClassName: <storageClass>
     ## If set to "-", storageClassName: "", which disables dynamic provisioning
     ## If undefined (the default) or set to null, no storageClassName spec is
@@ -1174,156 +888,402 @@ readReplicas:
     ##   GKE, AWS & OpenStack)
     ##
     storageClass: ""
-    ## @param readReplicas.persistence.accessModes PVC Access Mode for PostgreSQL volume
+    ## @param secondary.persistence.labels Labels for the PVC
+    ##
+    labels: {}
+    ## @param secondary.persistence.annotations MariaDB secondary persistent volume claim annotations
+    ##
+    annotations: {}
+    ## @param secondary.persistence.accessModes MariaDB secondary persistent volume access Modes
     ##
     accessModes:
       - ReadWriteOnce
-    ## @param readReplicas.persistence.size PVC Storage Request for PostgreSQL volume
+    ## @param secondary.persistence.size MariaDB secondary persistent volume size
     ##
     size: 8Gi
-    ## @param readReplicas.persistence.annotations Annotations for the PVC
-    ##
-    annotations: {}
-    ## @param readReplicas.persistence.labels Labels for the PVC
-    ##
-    labels: {}
-    ## @param readReplicas.persistence.selector Selector to match an existing Persistent Volume (this value is evaluated as a template)
+    ## @param secondary.persistence.selector Selector to match an existing Persistent Volume
     ## selector:
     ##   matchLabels:
     ##     app: my-app
     ##
     selector: {}
-    ## @param readReplicas.persistence.dataSource Custom PVC data source
-    ##
-    dataSource: {}
-  ## PostgreSQL Read only Persistent Volume Claim Retention Policy
-  ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention
+  ## @param secondary.extraVolumes Optionally specify extra list of additional volumes to the MariaDB secondary pod(s)
   ##
-  persistentVolumeClaimRetentionPolicy:
-    ## @param readReplicas.persistentVolumeClaimRetentionPolicy.enabled Enable Persistent volume retention policy for read only Statefulset
+  extraVolumes: []
+  ## @param secondary.extraVolumeMounts Optionally specify extra list of additional volumeMounts for the MariaDB secondary container(s)
+  ##
+  extraVolumeMounts: []
+  ## @param secondary.initContainers Add additional init containers for the MariaDB secondary pod(s)
+  ##
+  initContainers: []
+  ## @param secondary.sidecars Add additional sidecar containers for the MariaDB secondary pod(s)
+  ##
+  sidecars: []
+  ## MariaDB Secondary Service parameters
+  ##
+  service:
+    ## @param secondary.service.type MariaDB secondary Kubernetes service type
+    ##
+    type: ClusterIP
+    ports:
+      ## @param secondary.service.ports.mysql MariaDB secondary Kubernetes service port for MariaDB
+      ##
+      mysql: 3306
+      ## @param secondary.service.ports.metrics MariaDB secondary Kubernetes service port for metrics
+      ##
+      metrics: 9104
+    ## @param secondary.service.nodePorts.mysql MariaDB secondary Kubernetes service node port
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
+    ##
+    nodePorts:
+      mysql: ""
+    ## @param secondary.service.clusterIP MariaDB secondary Kubernetes service clusterIP IP
+    ## e.g:
+    ## clusterIP: None
+    ##
+    clusterIP: ""
+    ## @param secondary.service.loadBalancerIP MariaDB secondary loadBalancerIP if service type is `LoadBalancer`
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#internal-load-balancer
+    ##
+    loadBalancerIP: ""
+    ## @param secondary.service.externalTrafficPolicy Enable client source IP preservation
+    ## ref https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip
+    ##
+    externalTrafficPolicy: Cluster
+    ## @param secondary.service.loadBalancerSourceRanges Address that are allowed when MariaDB secondary service is LoadBalancer
+    ## https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/#restrict-access-for-loadbalancer-service
+    ## E.g.
+    ## loadBalancerSourceRanges:
+    ##   - 10.10.10.0/24
+    ##
+    loadBalancerSourceRanges: []
+    ## @param secondary.service.extraPorts Extra ports to expose (normally used with the `sidecar` value)
+    ##
+    extraPorts: []
+    ## @param secondary.service.annotations Provide any additional annotations which may be required
+    ##
+    annotations: {}
+    ## @param secondary.service.sessionAffinity Session Affinity for Kubernetes service, can be "None" or "ClientIP"
+    ## If "ClientIP", consecutive client requests will be directed to the same Pod
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies
+    ##
+    sessionAffinity: None
+    ## @param secondary.service.sessionAffinityConfig Additional settings for the sessionAffinity
+    ## sessionAffinityConfig:
+    ##   clientIP:
+    ##     timeoutSeconds: 300
+    ##
+    sessionAffinityConfig: {}
+  ## MariaDB secondary Pod Disruption Budget configuration
+  ## ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
+  ##
+  pdb:
+    ## @param secondary.pdb.create Enable/disable a Pod Disruption Budget creation for MariaDB secondary pods
+    ##
+    create: false
+    ## @param secondary.pdb.minAvailable Minimum number/percentage of MariaDB secondary pods that should remain scheduled
+    ##
+    minAvailable: 1
+    ## @param secondary.pdb.maxUnavailable Maximum number/percentage of MariaDB secondary pods that may be made unavailable
+    ##
+    maxUnavailable: ""
+  ## @param secondary.revisionHistoryLimit Maximum number of revisions that will be maintained in the StatefulSet
+  ##
+  revisionHistoryLimit: 10
+
+## @section RBAC parameters
+##
+
+## MariaDB pods ServiceAccount
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
+##
+serviceAccount:
+  ## @param serviceAccount.create Enable the creation of a ServiceAccount for MariaDB pods
+  ##
+  create: true
+  ## @param serviceAccount.name Name of the created ServiceAccount
+  ## If not set and create is true, a name is generated using the mariadb.fullname template
+  ##
+  name: ""
+  ## @param serviceAccount.annotations Annotations for MariaDB Service Account
+  ##
+  annotations: {}
+  ## @param serviceAccount.automountServiceAccountToken Automount service account token for the server service account
+  ##
+  automountServiceAccountToken: false
+## Role Based Access
+## ref: https://kubernetes.io/docs/admin/authorization/rbac/
+##
+rbac:
+  ## @param rbac.create Whether to create and use RBAC resources or not
+  ##
+  create: false
+
+## @section Volume Permissions parameters
+##
+
+## Init containers parameters:
+## volumePermissions: Change the owner and group of the persistent volume mountpoint to runAsUser:fsGroup values from the securityContext section.
+##
+volumePermissions:
+  ## @param volumePermissions.enabled Enable init container that changes the owner and group of the persistent volume(s) mountpoint to `runAsUser:fsGroup`
+  ##
+  enabled: false
+  ## @param volumePermissions.image.registry [default: REGISTRY_NAME] Init container volume-permissions image registry
+  ## @param volumePermissions.image.repository [default: REPOSITORY_NAME/os-shell] Init container volume-permissions image repository
+  ## @skip volumePermissions.image.tag Init container volume-permissions image tag (immutable tags are recommended)
+  ## @param volumePermissions.image.digest Init container volume-permissions image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag
+  ## @param volumePermissions.image.pullPolicy Init container volume-permissions image pull policy
+  ## @param volumePermissions.image.pullSecrets Specify docker-registry secret names as an array
+  ##
+  image:
+    registry: docker.io
+    repository: bitnami/os-shell
+    tag: 11-debian-11-r96
+    digest: ""
+    pullPolicy: IfNotPresent
+    ## Optionally specify an array of imagePullSecrets (secrets must be manually created in the namespace)
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+    ## Example:
+    ## pullSecrets:
+    ##   - myRegistryKeySecretName
+    ##
+    pullSecrets: []
+  ## @param volumePermissions.resources.limits Init container volume-permissions resource limits
+  ## @param volumePermissions.resources.requests Init container volume-permissions resource requests
+  ##
+  resources:
+    limits: {}
+    requests: {}
+
+## @section Metrics parameters
+##
+
+## Mysqld Prometheus exporter parameters
+##
+metrics:
+  ## @param metrics.enabled Start a side-car prometheus exporter
+  ##
+  enabled: false
+  ## @param metrics.image.registry [default: REGISTRY_NAME] Exporter image registry
+  ## @param metrics.image.repository [default: REPOSITORY_NAME/mysqld-exporter] Exporter image repository
+  ## @skip metrics.image.tag Exporter image tag (immutable tags are recommended)
+  ## @param metrics.image.digest Exporter image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag
+  ## @param metrics.image.pullPolicy Exporter image pull policy
+  ## @param metrics.image.pullSecrets Specify docker-registry secret names as an array
+  ##
+  image:
+    registry: docker.io
+    repository: bitnami/mysqld-exporter
+    tag: 0.15.1-debian-11-r5
+    digest: ""
+    pullPolicy: IfNotPresent
+    ## Optionally specify an array of imagePullSecrets (secrets must be manually created in the namespace)
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+    ## Example:
+    ## pullSecrets:
+    ##   - myRegistryKeySecretName
+    ##
+    pullSecrets: []
+  ## @param metrics.annotations [object] Annotations for the Exporter pod
+  ##
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9104"
+  ## @param metrics.extraArgs [object] Extra args to be passed to mysqld_exporter
+  ## ref: https://github.com/prometheus/mysqld_exporter/
+  ## E.g.
+  ## - --collect.auto_increment.columns
+  ## - --collect.binlog_size
+  ## - --collect.engine_innodb_status
+  ## - --collect.engine_tokudb_status
+  ## - --collect.global_status
+  ## - --collect.global_variables
+  ## - --collect.info_schema.clientstats
+  ## - --collect.info_schema.innodb_metrics
+  ## - --collect.info_schema.innodb_tablespaces
+  ## - --collect.info_schema.innodb_cmp
+  ## - --collect.info_schema.innodb_cmpmem
+  ## - --collect.info_schema.processlist
+  ## - --collect.info_schema.processlist.min_time
+  ## - --collect.info_schema.query_response_time
+  ## - --collect.info_schema.tables
+  ## - --collect.info_schema.tables.databases
+  ## - --collect.info_schema.tablestats
+  ## - --collect.info_schema.userstats
+  ## - --collect.perf_schema.eventsstatements
+  ## - --collect.perf_schema.eventsstatements.digest_text_limit
+  ## - --collect.perf_schema.eventsstatements.limit
+  ## - --collect.perf_schema.eventsstatements.timelimit
+  ## - --collect.perf_schema.eventswaits
+  ## - --collect.perf_schema.file_events
+  ## - --collect.perf_schema.file_instances
+  ## - --collect.perf_schema.indexiowaits
+  ## - --collect.perf_schema.tableiowaits
+  ## - --collect.perf_schema.tablelocks
+  ## - --collect.perf_schema.replication_group_member_stats
+  ## - --collect.slave_status
+  ## - --collect.slave_hosts
+  ## - --collect.heartbeat
+  ## - --collect.heartbeat.database
+  ## - --collect.heartbeat.table
+  ##
+  extraArgs:
+    primary: []
+    secondary: []
+  ## @param metrics.extraVolumeMounts [object] Optionally specify extra list of additional volumeMounts for the MariaDB metrics container(s)
+  ##
+  extraVolumeMounts:
+    primary: []
+    secondary: []
+  ## MariaDB metrics container Security Context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
+  ## @param metrics.containerSecurityContext.enabled Enable security context for MariaDB metrics container
+  ## @param metrics.containerSecurityContext.seLinuxOptions [object,nullable] Set SELinux options in container
+  ## @param metrics.containerSecurityContext.runAsUser User ID for the MariaDB metrics container
+  ## @param metrics.containerSecurityContext.runAsNonRoot Set metrics container's Security Context runAsNonRoot
+  ## @param metrics.containerSecurityContext.privileged Set metrics container's Security Context privileged
+  ## @param metrics.containerSecurityContext.allowPrivilegeEscalation Set metrics container's Security Context allowPrivilegeEscalation
+  ## @param metrics.containerSecurityContext.capabilities.drop List of capabilities to be dropped
+  ## @param metrics.containerSecurityContext.seccompProfile.type Set container's Security Context seccomp profile
+  ## Example:
+  ##   containerSecurityContext:
+  ##     enabled: true
+  ##     capabilities:
+  ##       drop: ["NET_RAW"]
+  ##     readOnlyRootFilesystem: true
+  ##
+  containerSecurityContext:
+    enabled: false
+    privileged: false
+    runAsNonRoot: true
+    seLinuxOptions: null
+    runAsUser: 1001
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: "RuntimeDefault"
+  ## Mysqld Prometheus exporter resource requests and limits
+  ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+  ## We usually recommend not to specify default resources and to leave this as a conscious
+  ## choice for the user. This also increases chances charts run on environments with little
+  ## resources, such as Minikube. If you do want to specify resources, uncomment the following
+  ## lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  ## @param metrics.resources.limits The resources limits for MariaDB prometheus exporter containers
+  ## @param metrics.resources.requests The requested resources for MariaDB prometheus exporter containers
+  ##
+  resources:
+    ## Example:
+    ## limits:
+    ##    cpu: 100m
+    ##    memory: 256Mi
+    ##
+    limits: {}
+    ## Examples:
+    ## requests:
+    ##    cpu: 100m
+    ##    memory: 256Mi
+    ##
+    requests: {}
+  ## Configure extra options for liveness probe
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
+  ## @param metrics.livenessProbe.enabled Enable livenessProbe
+  ## @param metrics.livenessProbe.initialDelaySeconds Initial delay seconds for livenessProbe
+  ## @param metrics.livenessProbe.periodSeconds Period seconds for livenessProbe
+  ## @param metrics.livenessProbe.timeoutSeconds Timeout seconds for livenessProbe
+  ## @param metrics.livenessProbe.failureThreshold Failure threshold for livenessProbe
+  ## @param metrics.livenessProbe.successThreshold Success threshold for livenessProbe
+  ##
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 120
+    periodSeconds: 10
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 3
+  ## Configure extra options for readiness probe
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
+  ## @param metrics.readinessProbe.enabled Enable readinessProbe
+  ## @param metrics.readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
+  ## @param metrics.readinessProbe.periodSeconds Period seconds for readinessProbe
+  ## @param metrics.readinessProbe.timeoutSeconds Timeout seconds for readinessProbe
+  ## @param metrics.readinessProbe.failureThreshold Failure threshold for readinessProbe
+  ## @param metrics.readinessProbe.successThreshold Success threshold for readinessProbe
+  ##
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 3
+  ## Prometheus Service Monitor
+  ## ref: https://github.com/coreos/prometheus-operator
+  ##
+  serviceMonitor:
+    ## @param metrics.serviceMonitor.enabled Create ServiceMonitor Resource for scraping metrics using PrometheusOperator
     ##
     enabled: false
-    ## @param readReplicas.persistentVolumeClaimRetentionPolicy.whenScaled Volume retention behavior when the replica count of the StatefulSet is reduced
+    ## @param metrics.serviceMonitor.namespace Namespace which Prometheus is running in
     ##
-    whenScaled: Retain
-    ## @param readReplicas.persistentVolumeClaimRetentionPolicy.whenDeleted Volume retention behavior that applies when the StatefulSet is deleted
+    namespace: ""
+    ## @param metrics.serviceMonitor.jobLabel The name of the label on the target service to use as the job name in prometheus.
     ##
-    whenDeleted: Retain
-
-
-## @section Backup parameters
-## This section implements a trivial logical dump cronjob of the database.
-## This only comes with the consistency guarantees of the dump program.
-## This is not a snapshot based roll forward/backward recovery backup.
-## ref: https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/
-backup:
-  ## @param backup.enabled Enable the logical dump of the database "regularly"
-  enabled: false
-  cronjob:
-    ## @param backup.cronjob.schedule Set the cronjob parameter schedule
-    schedule: "@daily"
-    ## @param backup.cronjob.timeZone Set the cronjob parameter timeZone
-    timeZone: ""
-    ## @param backup.cronjob.concurrencyPolicy Set the cronjob parameter concurrencyPolicy
-    concurrencyPolicy: Allow
-    ## @param backup.cronjob.failedJobsHistoryLimit Set the cronjob parameter failedJobsHistoryLimit
-    failedJobsHistoryLimit: 1
-    ## @param backup.cronjob.successfulJobsHistoryLimit Set the cronjob parameter successfulJobsHistoryLimit
-    successfulJobsHistoryLimit: 3
-    ## @param backup.cronjob.startingDeadlineSeconds Set the cronjob parameter startingDeadlineSeconds
-    startingDeadlineSeconds: ""
-    ## @param backup.cronjob.ttlSecondsAfterFinished Set the cronjob parameter ttlSecondsAfterFinished
-    ttlSecondsAfterFinished: ""
-    ## @param backup.cronjob.restartPolicy Set the cronjob parameter restartPolicy
-    restartPolicy: OnFailure
-    ## @param backup.cronjob.podSecurityContext.enabled Enable PodSecurityContext for CronJob/Backup
-    ## @param backup.cronjob.podSecurityContext.fsGroupChangePolicy Set filesystem group change policy
-    ## @param backup.cronjob.podSecurityContext.sysctls Set kernel settings using the sysctl interface
-    ## @param backup.cronjob.podSecurityContext.supplementalGroups Set filesystem extra groups
-    ## @param backup.cronjob.podSecurityContext.fsGroup Group ID for the CronJob
-    podSecurityContext:
-      enabled: true
-      fsGroupChangePolicy: Always
-      sysctls: []
-      supplementalGroups: []
-      fsGroup: 1001
-    ## backup container's Security Context
-    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
-    ## @param backup.cronjob.containerSecurityContext.enabled Enabled containers' Security Context
-    ## @param backup.cronjob.containerSecurityContext.seLinuxOptions [object,nullable] Set SELinux options in container
-    ## @param backup.cronjob.containerSecurityContext.runAsUser Set containers' Security Context runAsUser
-    ## @param backup.cronjob.containerSecurityContext.runAsNonRoot Set container's Security Context runAsNonRoot
-    ## @param backup.cronjob.containerSecurityContext.privileged Set container's Security Context privileged
-    ## @param backup.cronjob.containerSecurityContext.readOnlyRootFilesystem Set container's Security Context readOnlyRootFilesystem
-    ## @param backup.cronjob.containerSecurityContext.allowPrivilegeEscalation Set container's Security Context allowPrivilegeEscalation
-    ## @param backup.cronjob.containerSecurityContext.capabilities.drop List of capabilities to be dropped
-    ## @param backup.cronjob.containerSecurityContext.seccompProfile.type Set container's Security Context seccomp profile
-    containerSecurityContext:
-      enabled: true
-      seLinuxOptions: null
-      runAsUser: 1001
-      runAsNonRoot: true
-      privileged: false
-      readOnlyRootFilesystem: false
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop: ["ALL"]
-      seccompProfile:
-        type: "RuntimeDefault"
-    ## @param backup.cronjob.command Set backup container's command to run
-    command:
-      - /bin/sh
-      - -c
-      - "pg_dumpall --clean --if-exists --load-via-partition-root --quote-all-identifiers --no-password --file=${PGDUMP_DIR}/pg_dumpall-$(date '+%Y-%m-%d-%H-%M').pgdump"
-
-    ## @param backup.cronjob.labels Set the cronjob labels
+    jobLabel: ""
+    ## @param metrics.serviceMonitor.interval Interval at which metrics should be scraped
+    ##
+    interval: 30s
+    ## @param metrics.serviceMonitor.scrapeTimeout Specify the timeout after which the scrape is ended
+    ## e.g:
+    ## scrapeTimeout: 30s
+    ##
+    scrapeTimeout: ""
+    ## @param metrics.serviceMonitor.relabelings RelabelConfigs to apply to samples before scraping
+    ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#relabelconfig
+    ##
+    relabelings: []
+    ## @param metrics.serviceMonitor.metricRelabelings MetricRelabelConfigs to apply to samples before ingestion
+    ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#relabelconfig
+    ##
+    metricRelabelings: []
+    ## @param metrics.serviceMonitor.honorLabels honorLabels chooses the metric's labels on collisions with target labels
+    ##
+    honorLabels: false
+    ## @param metrics.serviceMonitor.selector ServiceMonitor selector labels
+    ## ref: https://github.com/bitnami/charts/tree/main/bitnami/prometheus-operator#prometheus-configuration
+    ##
+    ## selector:
+    ##   prometheus: my-prometheus
+    ##
+    selector: {}
+    ## @param metrics.serviceMonitor.labels Extra labels for the ServiceMonitor
+    ##
     labels: {}
-    ## @param backup.cronjob.annotations Set the cronjob annotations
-    annotations: {}
-    ## @param backup.cronjob.nodeSelector Node labels for PostgreSQL backup CronJob pod assignment
-    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
+  ## Prometheus Operator PrometheusRule configuration
+  ##
+  prometheusRule:
+    ## @param metrics.prometheusRule.enabled if `true`, creates a Prometheus Operator PrometheusRule (also requires `metrics.enabled` to be `true` and `metrics.prometheusRule.rules`)
     ##
-    nodeSelector: {}
-    storage:
-      ## @param backup.cronjob.storage.existingClaim Provide an existing `PersistentVolumeClaim` (only when `architecture=standalone`)
-      ## If defined, PVC must be created manually before volume will be bound
-      ##
-      existingClaim: ""
-      ## @param backup.cronjob.storage.resourcePolicy Setting it to "keep" to avoid removing PVCs during a helm delete operation. Leaving it empty will delete PVCs after the chart deleted
-      ##
-      resourcePolicy: ""
-      ## @param backup.cronjob.storage.storageClass PVC Storage Class for the backup data volume
-      ## If defined, storageClassName: <storageClass>
-      ## If set to "-", storageClassName: "", which disables dynamic provisioning
-      ## If undefined (the default) or set to null, no storageClassName spec is
-      ## set, choosing the default provisioner.
-      ##
-      storageClass: ""
-      ## @param backup.cronjob.storage.accessModes PV Access Mode
-      ##
-      accessModes:
-       - ReadWriteOnce
-      ## @param backup.cronjob.storage.size PVC Storage Request for the backup data volume
-      ##
-      size: 8Gi
-      ## @param backup.cronjob.storage.annotations PVC annotations
-      ##
-      annotations: {}
-      ## @param backup.cronjob.storage.mountPath Path to mount the volume at
-      ##
-      mountPath: /backup/pgdump
-      ## @param backup.cronjob.storage.subPath Subdirectory of the volume to mount at
-      ## and one PV for multiple services.
-      ##
-      subPath: ""
-      ## Fine tuning for volumeClaimTemplates
-      ##
-      volumeClaimTemplates:
-        ## @param backup.cronjob.storage.volumeClaimTemplates.selector A label query over volumes to consider for binding (e.g. when using local volumes)
-        ## A label query over volumes to consider for binding (e.g. when using local volumes)
-        ## See https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#labelselector-v1-meta for more details
-        ##
-        selector: {}
+    enabled: false
+    ## @param metrics.prometheusRule.namespace Namespace for the PrometheusRule Resource (defaults to the Release Namespace)
+    ##
+    namespace: ""
+    ## @param metrics.prometheusRule.additionalLabels Additional labels that can be used so PrometheusRule will be discovered by Prometheus
+    ##
+    additionalLabels: {}
+    ## @param metrics.prometheusRule.rules Prometheus Rule definitions
+    ##  - alert: MariaDB-Down
+    ##    expr: absent(up{job="mariadb"} == 1)
+    ##    for: 5m
+    ##    labels:
+    ##      severity: warning
+    ##      service: mariadb
+    ##    annotations:
+    ##      message: 'MariaDB instance {{ `{{` }} $labels.instance {{ `}}` }} is down'
+    ##      summary: MariaDB instance is down
+    ##
+    rules: []
 
 ## @section NetworkPolicy parameters
 ##
@@ -1334,29 +1294,33 @@ networkPolicy:
   ## @param networkPolicy.enabled Enable network policies
   ##
   enabled: false
-  ## @param networkPolicy.metrics.enabled Enable network policies for metrics (prometheus)
+  ## @param networkPolicy.metrics.enabled Enable network policy for metrics (prometheus)
   ## @param networkPolicy.metrics.namespaceSelector [object] Monitoring namespace selector labels. These labels will be used to identify the prometheus' namespace.
   ## @param networkPolicy.metrics.podSelector [object] Monitoring pod selector labels. These labels will be used to identify the Prometheus pods.
   ##
   metrics:
     enabled: false
     ## e.g:
-    ## namespaceSelector:
-    ##   label: monitoring
-    ##
-    namespaceSelector: {}
-    ## e.g:
     ## podSelector:
     ##   label: monitoring
     ##
     podSelector: {}
-  ## Ingress Rules
+    ## e.g:
+    ## namespaceSelector:
+    ##   label: monitoring
+    ##
+    namespaceSelector: {}
+  ## @param networkPolicy.ingressRules.primaryAccessOnlyFrom.enabled Enable ingress rule that makes primary mariadb nodes only accessible from a particular origin.
+  ## @param networkPolicy.ingressRules.primaryAccessOnlyFrom.namespaceSelector [object] Namespace selector label that is allowed to access the primary node. This label will be used to identified the allowed namespace(s).
+  ## @param networkPolicy.ingressRules.primaryAccessOnlyFrom.podSelector [object] Pods selector label that is allowed to access the primary node. This label will be used to identified the allowed pod(s).
+  ## @param networkPolicy.ingressRules.primaryAccessOnlyFrom.customRules Custom network policy for the primary node.
+  ## @param networkPolicy.ingressRules.secondaryAccessOnlyFrom.enabled Enable ingress rule that makes primary mariadb nodes only accessible from a particular origin.
+  ## @param networkPolicy.ingressRules.secondaryAccessOnlyFrom.namespaceSelector [object] Namespace selector label that is allowed to acces the secondary nodes. This label will be used to identified the allowed namespace(s).
+  ## @param networkPolicy.ingressRules.secondaryAccessOnlyFrom.podSelector [object] Pods selector label that is allowed to access the secondary nodes. This label will be used to identified the allowed pod(s).
+  ## @param networkPolicy.ingressRules.secondaryAccessOnlyFrom.customRules Custom network policy for the secondary nodes.
   ##
   ingressRules:
-    ## @param networkPolicy.ingressRules.primaryAccessOnlyFrom.enabled Enable ingress rule that makes PostgreSQL primary node only accessible from a particular origin.
-    ## @param networkPolicy.ingressRules.primaryAccessOnlyFrom.namespaceSelector [object] Namespace selector label that is allowed to access the PostgreSQL primary node. This label will be used to identified the allowed namespace(s).
-    ## @param networkPolicy.ingressRules.primaryAccessOnlyFrom.podSelector [object] Pods selector label that is allowed to access the PostgreSQL primary node. This label will be used to identified the allowed pod(s).
-    ## @param networkPolicy.ingressRules.primaryAccessOnlyFrom.customRules Custom network policy for the PostgreSQL primary node.
+    ## Allow access to the primary node only from the indicated:
     ##
     primaryAccessOnlyFrom:
       enabled: false
@@ -1379,12 +1343,10 @@ networkPolicy:
       ##             label: example
       ##
       customRules: []
-    ## @param networkPolicy.ingressRules.readReplicasAccessOnlyFrom.enabled Enable ingress rule that makes PostgreSQL read-only nodes only accessible from a particular origin.
-    ## @param networkPolicy.ingressRules.readReplicasAccessOnlyFrom.namespaceSelector [object] Namespace selector label that is allowed to access the PostgreSQL read-only nodes. This label will be used to identified the allowed namespace(s).
-    ## @param networkPolicy.ingressRules.readReplicasAccessOnlyFrom.podSelector [object] Pods selector label that is allowed to access the PostgreSQL read-only nodes. This label will be used to identified the allowed pod(s).
-    ## @param networkPolicy.ingressRules.readReplicasAccessOnlyFrom.customRules Custom network policy for the PostgreSQL read-only nodes.
+
+    ## Allow access to the secondary node only from the indicated:
     ##
-    readReplicasAccessOnlyFrom:
+    secondaryAccessOnlyFrom:
       enabled: false
       ## e.g:
       ## namespaceSelector:
@@ -1405,6 +1367,7 @@ networkPolicy:
       ##             label: example
       ##
       customRules: []
+
   ## @param networkPolicy.egressRules.denyConnectionsToExternal Enable egress rule that denies outgoing traffic outside the cluster, except for DNS (port 53).
   ## @param networkPolicy.egressRules.customRules Custom network policy rule
   ##
@@ -1419,340 +1382,4 @@ networkPolicy:
     ##           matchLabels:
     ##             label: example
     ##
-    customRules: []
-
-## @section Volume Permissions parameters
-##
-
-## Init containers parameters:
-## volumePermissions: Change the owner and group of the persistent volume(s) mountpoint(s) to 'runAsUser:fsGroup' on each node
-##
-volumePermissions:
-  ## @param volumePermissions.enabled Enable init container that changes the owner and group of the persistent volume
-  ##
-  enabled: false
-  ## @param volumePermissions.image.registry [default: REGISTRY_NAME] Init container volume-permissions image registry
-  ## @param volumePermissions.image.repository [default: REPOSITORY_NAME/os-shell] Init container volume-permissions image repository
-  ## @skip volumePermissions.image.tag Init container volume-permissions image tag (immutable tags are recommended)
-  ## @param volumePermissions.image.digest Init container volume-permissions image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag
-  ## @param volumePermissions.image.pullPolicy Init container volume-permissions image pull policy
-  ## @param volumePermissions.image.pullSecrets Init container volume-permissions image pull secrets
-  ##
-  image:
-    registry: docker.io
-    repository: bitnami/os-shell
-    tag: 11-debian-11-r96
-    digest: ""
-    pullPolicy: IfNotPresent
-    ## Optionally specify an array of imagePullSecrets.
-    ## Secrets must be manually created in the namespace.
-    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-    ## Example:
-    ## pullSecrets:
-    ##   - myRegistryKeySecretName
-    ##
-    pullSecrets: []
-  ## Init container resource requests and limits
-  ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
-  ## @param volumePermissions.resources.limits Init container volume-permissions resource limits
-  ## @param volumePermissions.resources.requests Init container volume-permissions resource requests
-  ##
-  resources:
-    limits: {}
-    requests: {}
-  ## Init container' Security Context
-  ## Note: the chown of the data folder is done to containerSecurityContext.runAsUser
-  ## and not the below volumePermissions.containerSecurityContext.runAsUser
-  ## @param volumePermissions.containerSecurityContext.seLinuxOptions [object,nullable] Set SELinux options in container
-  ## @param volumePermissions.containerSecurityContext.runAsUser User ID for the init container
-  ## @param volumePermissions.containerSecurityContext.runAsGroup Group ID for the init container
-  ## @param volumePermissions.containerSecurityContext.runAsNonRoot runAsNonRoot for the init container
-  ## @param volumePermissions.containerSecurityContext.seccompProfile.type seccompProfile.type for the init container
-  ##
-  containerSecurityContext:
-    seLinuxOptions: null
-    runAsUser: 0
-    runAsGroup: 0
-    runAsNonRoot: false
-    seccompProfile:
-      type: RuntimeDefault
-## @section Other Parameters
-##
-
-## @param serviceBindings.enabled Create secret for service binding (Experimental)
-## Ref: https://servicebinding.io/service-provider/
-##
-serviceBindings:
-  enabled: false
-
-## Service account for PostgreSQL to use.
-## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
-##
-serviceAccount:
-  ## @param serviceAccount.create Enable creation of ServiceAccount for PostgreSQL pod
-  ##
-  create: true
-  ## @param serviceAccount.name The name of the ServiceAccount to use.
-  ## If not set and create is true, a name is generated using the common.names.fullname template
-  ##
-  name: ""
-  ## @param serviceAccount.automountServiceAccountToken Allows auto mount of ServiceAccountToken on the serviceAccount created
-  ## Can be set to false if pods using this serviceAccount do not need to use K8s API
-  ##
-  automountServiceAccountToken: false
-  ## @param serviceAccount.annotations Additional custom annotations for the ServiceAccount
-  ##
-  annotations: {}
-## Creates role for ServiceAccount
-## @param rbac.create Create Role and RoleBinding (required for PSP to work)
-##
-rbac:
-  create: false
-  ## @param rbac.rules Custom RBAC rules to set
-  ## e.g:
-  ## rules:
-  ##   - apiGroups:
-  ##       - ""
-  ##     resources:
-  ##       - pods
-  ##     verbs:
-  ##       - get
-  ##       - list
-  ##
-  rules: []
-## Pod Security Policy
-## ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/
-## @param psp.create Whether to create a PodSecurityPolicy. WARNING: PodSecurityPolicy is deprecated in Kubernetes v1.21 or later, unavailable in v1.25 or later
-##
-psp:
-  create: false
-
-## @section Metrics Parameters
-##
-
-metrics:
-  ## @param metrics.enabled Start a prometheus exporter
-  ##
-  enabled: false
-  ## @param metrics.image.registry [default: REGISTRY_NAME] PostgreSQL Prometheus Exporter image registry
-  ## @param metrics.image.repository [default: REPOSITORY_NAME/postgres-exporter] PostgreSQL Prometheus Exporter image repository
-  ## @skip metrics.image.tag PostgreSQL Prometheus Exporter image tag (immutable tags are recommended)
-  ## @param metrics.image.digest PostgreSQL image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag
-  ## @param metrics.image.pullPolicy PostgreSQL Prometheus Exporter image pull policy
-  ## @param metrics.image.pullSecrets Specify image pull secrets
-  ##
-  image:
-    registry: docker.io
-    repository: bitnami/postgres-exporter
-    tag: 0.15.0-debian-11-r8
-    digest: ""
-    pullPolicy: IfNotPresent
-    ## Optionally specify an array of imagePullSecrets.
-    ## Secrets must be manually created in the namespace.
-    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-    ## Example:
-    ## pullSecrets:
-    ##   - myRegistryKeySecretName
-    ##
-    pullSecrets: []
-  ## @param metrics.collectors Control enabled collectors
-  ## ref: https://github.com/prometheus-community/postgres_exporter#flags
-  ## Example:
-  ## collectors:
-  ##   wal: false
-  collectors: {}
-  ## @param metrics.customMetrics Define additional custom metrics
-  ## ref: https://github.com/prometheus-community/postgres_exporter#adding-new-metrics-via-a-config-file-deprecated
-  ## customMetrics:
-  ##   pg_database:
-  ##     query: "SELECT d.datname AS name, CASE WHEN pg_catalog.has_database_privilege(d.datname, 'CONNECT') THEN pg_catalog.pg_database_size(d.datname) ELSE 0 END AS size_bytes FROM pg_catalog.pg_database d where datname not in ('template0', 'template1', 'postgres')"
-  ##     metrics:
-  ##       - name:
-  ##           usage: "LABEL"
-  ##           description: "Name of the database"
-  ##       - size_bytes:
-  ##           usage: "GAUGE"
-  ##           description: "Size of the database in bytes"
-  ##
-  customMetrics: {}
-  ## @param metrics.extraEnvVars Extra environment variables to add to PostgreSQL Prometheus exporter
-  ## see: https://github.com/prometheus-community/postgres_exporter#environment-variables
-  ## For example:
-  ##  extraEnvVars:
-  ##  - name: PG_EXPORTER_DISABLE_DEFAULT_METRICS
-  ##    value: "true"
-  ##
-  extraEnvVars: []
-  ## PostgreSQL Prometheus exporter containers' Security Context
-  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
-  ## @param metrics.containerSecurityContext.enabled Enabled containers' Security Context
-  ## @param metrics.containerSecurityContext.seLinuxOptions [object,nullable] Set SELinux options in container
-  ## @param metrics.containerSecurityContext.runAsUser Set containers' Security Context runAsUser
-  ## @param metrics.containerSecurityContext.runAsNonRoot Set container's Security Context runAsNonRoot
-  ## @param metrics.containerSecurityContext.privileged Set container's Security Context privileged
-  ## @param metrics.containerSecurityContext.readOnlyRootFilesystem Set container's Security Context readOnlyRootFilesystem
-  ## @param metrics.containerSecurityContext.allowPrivilegeEscalation Set container's Security Context allowPrivilegeEscalation
-  ## @param metrics.containerSecurityContext.capabilities.drop List of capabilities to be dropped
-  ## @param metrics.containerSecurityContext.seccompProfile.type Set container's Security Context seccomp profile
-  ##
-  containerSecurityContext:
-    enabled: true
-    seLinuxOptions: null
-    runAsUser: 1001
-    runAsNonRoot: true
-    privileged: false
-    readOnlyRootFilesystem: false
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop: ["ALL"]
-    seccompProfile:
-      type: "RuntimeDefault"
-  ## Configure extra options for PostgreSQL Prometheus exporter containers' liveness, readiness and startup probes
-  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
-  ## @param metrics.livenessProbe.enabled Enable livenessProbe on PostgreSQL Prometheus exporter containers
-  ## @param metrics.livenessProbe.initialDelaySeconds Initial delay seconds for livenessProbe
-  ## @param metrics.livenessProbe.periodSeconds Period seconds for livenessProbe
-  ## @param metrics.livenessProbe.timeoutSeconds Timeout seconds for livenessProbe
-  ## @param metrics.livenessProbe.failureThreshold Failure threshold for livenessProbe
-  ## @param metrics.livenessProbe.successThreshold Success threshold for livenessProbe
-  ##
-  livenessProbe:
-    enabled: true
-    initialDelaySeconds: 5
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  ## @param metrics.readinessProbe.enabled Enable readinessProbe on PostgreSQL Prometheus exporter containers
-  ## @param metrics.readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
-  ## @param metrics.readinessProbe.periodSeconds Period seconds for readinessProbe
-  ## @param metrics.readinessProbe.timeoutSeconds Timeout seconds for readinessProbe
-  ## @param metrics.readinessProbe.failureThreshold Failure threshold for readinessProbe
-  ## @param metrics.readinessProbe.successThreshold Success threshold for readinessProbe
-  ##
-  readinessProbe:
-    enabled: true
-    initialDelaySeconds: 5
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  ## @param metrics.startupProbe.enabled Enable startupProbe on PostgreSQL Prometheus exporter containers
-  ## @param metrics.startupProbe.initialDelaySeconds Initial delay seconds for startupProbe
-  ## @param metrics.startupProbe.periodSeconds Period seconds for startupProbe
-  ## @param metrics.startupProbe.timeoutSeconds Timeout seconds for startupProbe
-  ## @param metrics.startupProbe.failureThreshold Failure threshold for startupProbe
-  ## @param metrics.startupProbe.successThreshold Success threshold for startupProbe
-  ##
-  startupProbe:
-    enabled: false
-    initialDelaySeconds: 10
-    periodSeconds: 10
-    timeoutSeconds: 1
-    failureThreshold: 15
-    successThreshold: 1
-  ## @param metrics.customLivenessProbe Custom livenessProbe that overrides the default one
-  ##
-  customLivenessProbe: {}
-  ## @param metrics.customReadinessProbe Custom readinessProbe that overrides the default one
-  ##
-  customReadinessProbe: {}
-  ## @param metrics.customStartupProbe Custom startupProbe that overrides the default one
-  ##
-  customStartupProbe: {}
-  ## @param metrics.containerPorts.metrics PostgreSQL Prometheus exporter metrics container port
-  ##
-  containerPorts:
-    metrics: 9187
-  ## PostgreSQL Prometheus exporter resource requests and limits
-  ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
-  ## @param metrics.resources.limits The resources limits for the PostgreSQL Prometheus exporter container
-  ## @param metrics.resources.requests The requested resources for the PostgreSQL Prometheus exporter container
-  ##
-  resources:
-    limits: {}
-    requests: {}
-  ## Service configuration
-  ##
-  service:
-    ## @param metrics.service.ports.metrics PostgreSQL Prometheus Exporter service port
-    ##
-    ports:
-      metrics: 9187
-    ## @param metrics.service.clusterIP Static clusterIP or None for headless services
-    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#choosing-your-own-ip-address
-    ##
-    clusterIP: ""
-    ## @param metrics.service.sessionAffinity Control where client requests go, to the same pod or round-robin
-    ## Values: ClientIP or None
-    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/
-    ##
-    sessionAffinity: None
-    ## @param metrics.service.annotations [object] Annotations for Prometheus to auto-discover the metrics endpoint
-    ##
-    annotations:
-      prometheus.io/scrape: "true"
-      prometheus.io/port: "{{ .Values.metrics.service.ports.metrics }}"
-  ## Prometheus Operator ServiceMonitor configuration
-  ##
-  serviceMonitor:
-    ## @param metrics.serviceMonitor.enabled Create ServiceMonitor Resource for scraping metrics using Prometheus Operator
-    ##
-    enabled: false
-    ## @param metrics.serviceMonitor.namespace Namespace for the ServiceMonitor Resource (defaults to the Release Namespace)
-    ##
-    namespace: ""
-    ## @param metrics.serviceMonitor.interval Interval at which metrics should be scraped.
-    ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
-    ##
-    interval: ""
-    ## @param metrics.serviceMonitor.scrapeTimeout Timeout after which the scrape is ended
-    ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
-    ##
-    scrapeTimeout: ""
-    ## @param metrics.serviceMonitor.labels Additional labels that can be used so ServiceMonitor will be discovered by Prometheus
-    ##
-    labels: {}
-    ## @param metrics.serviceMonitor.selector Prometheus instance selector labels
-    ## ref: https://github.com/bitnami/charts/tree/main/bitnami/prometheus-operator#prometheus-configuration
-    ##
-    selector: {}
-    ## @param metrics.serviceMonitor.relabelings RelabelConfigs to apply to samples before scraping
-    ##
-    relabelings: []
-    ## @param metrics.serviceMonitor.metricRelabelings MetricRelabelConfigs to apply to samples before ingestion
-    ##
-    metricRelabelings: []
-    ## @param metrics.serviceMonitor.honorLabels Specify honorLabels parameter to add the scrape endpoint
-    ##
-    honorLabels: false
-    ## @param metrics.serviceMonitor.jobLabel The name of the label on the target service to use as the job name in prometheus.
-    ##
-    jobLabel: ""
-  ## Custom PrometheusRule to be defined
-  ## The value is evaluated as a template, so, for example, the value can depend on .Release or .Chart
-  ## ref: https://github.com/coreos/prometheus-operator#customresourcedefinitions
-  ##
-  prometheusRule:
-    ## @param metrics.prometheusRule.enabled Create a PrometheusRule for Prometheus Operator
-    ##
-    enabled: false
-    ## @param metrics.prometheusRule.namespace Namespace for the PrometheusRule Resource (defaults to the Release Namespace)
-    ##
-    namespace: ""
-    ## @param metrics.prometheusRule.labels Additional labels that can be used so PrometheusRule will be discovered by Prometheus
-    ##
-    labels: {}
-    ## @param metrics.prometheusRule.rules PrometheusRule definitions
-    ## Make sure to constraint the rules to the current postgresql service.
-    ## rules:
-    ##   - alert: HugeReplicationLag
-    ##     expr: pg_replication_lag{service="{{ printf "%s-metrics" (include "common.names.fullname" .) }}"} / 3600 > 1
-    ##     for: 1m
-    ##     labels:
-    ##       severity: critical
-    ##     annotations:
-    ##       description: replication for {{ include "common.names.fullname" . }} PostgreSQL is lagging by {{ "{{ $value }}" }} hour(s).
-    ##       summary: PostgreSQL replication is lagging by {{ "{{ $value }}" }} hour(s).
-    ##
-    rules: []
+    customRules: {}

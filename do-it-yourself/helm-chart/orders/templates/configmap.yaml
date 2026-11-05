@@ -5,6 +5,7 @@ metadata:
 data:
   JAVA_OPTS: "-XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/urandom"
   SERVER_TOMCAT_ACCESSLOG_ENABLED: "true"
-  SPRING_PROFILES_ACTIVE: "rabbitmq"
-  SPRING_DATASOURCE_URL: "jdbc:postgresql://orders-db:5432/orders"
+  SPRING_PROFILES_ACTIVE: "mysql,rabbitmq"
+  SPRING_DATASOURCE_WRITER_URL: "jdbc:mariadb://orders-db:3306/orders"
+  SPRING_DATASOURCE_READER_URL: "jdbc:mariadb://orders-db:3306/orders"
   SPRING_RABBITMQ_HOST: "rabbitmq"

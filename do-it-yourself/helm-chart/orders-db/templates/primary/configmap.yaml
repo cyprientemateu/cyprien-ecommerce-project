@@ -3,11 +3,11 @@ Copyright VMware, Inc.
 SPDX-License-Identifier: APACHE-2.0
 */}}
 
-{{- if (include "postgresql.v1.primary.createConfigmap" .) }}
+{{- if (include "mariadb.primary.createConfigmap" .) }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ printf "%s-configuration" (include "postgresql.v1.primary.fullname" .) }}
+  name: {{ include "mariadb.primary.fullname" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/component: primary
@@ -15,12 +15,6 @@ metadata:
   annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
   {{- end }}
 data:
-  {{- if .Values.primary.configuration }}
-  postgresql.conf: |
-    {{- include "common.tplvalues.render" ( dict "value" .Values.primary.configuration "context" $ ) | nindent 4 }}
-  {{- end }}
-  {{- if .Values.primary.pgHbaConfiguration }}
-  pg_hba.conf: |
-    {{- include "common.tplvalues.render" ( dict "value" .Values.primary.pgHbaConfiguration "context" $ ) | nindent 4 }}
-  {{- end }}
-{{- end }}
+  my.cnf: |-
+{{ .Values.primary.configuration | indent 4 }}
+{{- end -}}

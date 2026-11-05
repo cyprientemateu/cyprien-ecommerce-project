@@ -1,26 +1,26 @@
-<!--- app-name: PostgreSQL -->
+<!--- app-name: MariaDB -->
 
-# Bitnami package for PostgreSQL
+# Bitnami package for MariaDB
 
-PostgreSQL (Postgres) is an open source object-relational database known for reliability and data integrity. ACID-compliant, it supports foreign keys, joins, views, triggers and stored procedures.
+MariaDB is an open source, community-developed SQL database server that is widely in use around the world due to its enterprise features, flexibility, and collaboration with leading tech firms.
 
-[Overview of PostgreSQL](http://www.postgresql.org)
+[Overview of MariaDB](https://mariadb.org/)
 
 Trademarks: This software listing is packaged by Bitnami. The respective trademarks mentioned in the offering are owned by the respective companies, and use of them does not imply any affiliation or endorsement.
 
 ## TL;DR
 
 ```console
-helm install my-release oci://registry-1.docker.io/bitnamicharts/postgresql
+helm install my-release oci://registry-1.docker.io/bitnamicharts/mariadb
 ```
 
-Looking to use PostgreSQL in production? Try [VMware Tanzu Application Catalog](https://bitnami.com/enterprise), the enterprise edition of Bitnami Application Catalog.
+Looking to use MariaDB in production? Try [VMware Tanzu Application Catalog](https://bitnami.com/enterprise), the enterprise edition of Bitnami Application Catalog.
 
 ## Introduction
 
-This chart bootstraps a [PostgreSQL](https://github.com/bitnami/containers/tree/main/bitnami/postgresql) deployment on a [Kubernetes](https://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.
+This chart bootstraps a [MariaDB](https://github.com/bitnami/containers/tree/main/bitnami/mariadb) replication cluster deployment on a [Kubernetes](https://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.
 
-For HA, please see [this repo](https://github.com/bitnami/charts/tree/main/bitnami/postgresql-ha)
+MariaDB is developed as open source software and as a relational database it provides an SQL interface for accessing data. The latest versions of MariaDB also include GIS and JSON features.
 
 Bitnami charts can be used with [Kubeapps](https://kubeapps.dev/) for deployment and management of Helm Charts in clusters.
 
@@ -35,12 +35,12 @@ Bitnami charts can be used with [Kubeapps](https://kubeapps.dev/) for deployment
 To install the chart with the release name `my-release`:
 
 ```console
-helm install my-release oci://REGISTRY_NAME/REPOSITORY_NAME/postgresql
+helm install my-release oci://REGISTRY_NAME/REPOSITORY_NAME/mariadb
 ```
 
 > Note: You need to substitute the placeholders `REGISTRY_NAME` and `REPOSITORY_NAME` with a reference to your Helm chart registry and repository. For example, in the case of Bitnami, you need to use `REGISTRY_NAME=registry-1.docker.io` and `REPOSITORY_NAME=bitnamicharts`.
 
-The command deploys PostgreSQL on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
+The command deploys MariaDB on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
 
 > **Tip**: List all releases using `helm list`
 
@@ -52,527 +52,376 @@ To uninstall/delete the `my-release` deployment:
 helm delete my-release
 ```
 
-The command removes all the Kubernetes components but PVC's associated with the chart and deletes the release.
-
-To delete the PVC's associated with `my-release`:
-
-```console
-kubectl delete pvc -l release=my-release
-```
-
-> **Note**: Deleting the PVC's will delete postgresql data as well. Please be cautious before doing it.
+The command removes all the Kubernetes components associated with the chart and deletes the release.
 
 ## Parameters
 
 ### Global parameters
 
-| Name                                                       | Description                                                                                                                                                                           | Value |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| `global.imageRegistry`                                     | Global Docker image registry                                                                                                                                                          | `""`  |
-| `global.imagePullSecrets`                                  | Global Docker registry secret names as an array                                                                                                                                       | `[]`  |
-| `global.storageClass`                                      | Global StorageClass for Persistent Volume(s)                                                                                                                                          | `""`  |
-| `global.postgresql.auth.postgresPassword`                  | Password for the "postgres" admin user (overrides `auth.postgresPassword`)                                                                                                            | `""`  |
-| `global.postgresql.auth.username`                          | Name for a custom user to create (overrides `auth.username`)                                                                                                                          | `""`  |
-| `global.postgresql.auth.password`                          | Password for the custom user to create (overrides `auth.password`)                                                                                                                    | `""`  |
-| `global.postgresql.auth.database`                          | Name for a custom database to create (overrides `auth.database`)                                                                                                                      | `""`  |
-| `global.postgresql.auth.existingSecret`                    | Name of existing secret to use for PostgreSQL credentials (overrides `auth.existingSecret`).                                                                                          | `""`  |
-| `global.postgresql.auth.secretKeys.adminPasswordKey`       | Name of key in existing secret to use for PostgreSQL credentials (overrides `auth.secretKeys.adminPasswordKey`). Only used when `global.postgresql.auth.existingSecret` is set.       | `""`  |
-| `global.postgresql.auth.secretKeys.userPasswordKey`        | Name of key in existing secret to use for PostgreSQL credentials (overrides `auth.secretKeys.userPasswordKey`). Only used when `global.postgresql.auth.existingSecret` is set.        | `""`  |
-| `global.postgresql.auth.secretKeys.replicationPasswordKey` | Name of key in existing secret to use for PostgreSQL credentials (overrides `auth.secretKeys.replicationPasswordKey`). Only used when `global.postgresql.auth.existingSecret` is set. | `""`  |
-| `global.postgresql.service.ports.postgresql`               | PostgreSQL service port (overrides `service.ports.postgresql`)                                                                                                                        | `""`  |
+| Name                      | Description                                     | Value |
+| ------------------------- | ----------------------------------------------- | ----- |
+| `global.imageRegistry`    | Global Docker Image registry                    | `""`  |
+| `global.imagePullSecrets` | Global Docker registry secret names as an array | `[]`  |
+| `global.storageClass`     | Global storage class for dynamic provisioning   | `""`  |
 
 ### Common parameters
 
-| Name                     | Description                                                                                  | Value           |
-| ------------------------ | -------------------------------------------------------------------------------------------- | --------------- |
-| `kubeVersion`            | Override Kubernetes version                                                                  | `""`            |
-| `nameOverride`           | String to partially override common.names.fullname template (will maintain the release name) | `""`            |
-| `fullnameOverride`       | String to fully override common.names.fullname template                                      | `""`            |
-| `clusterDomain`          | Kubernetes Cluster Domain                                                                    | `cluster.local` |
-| `extraDeploy`            | Array of extra objects to deploy with the release (evaluated as a template)                  | `[]`            |
-| `commonLabels`           | Add labels to all the deployed resources                                                     | `{}`            |
-| `commonAnnotations`      | Add annotations to all the deployed resources                                                | `{}`            |
-| `diagnosticMode.enabled` | Enable diagnostic mode (all probes will be disabled and the command will be overridden)      | `false`         |
-| `diagnosticMode.command` | Command to override all containers in the statefulset                                        | `["sleep"]`     |
-| `diagnosticMode.args`    | Args to override all containers in the statefulset                                           | `["infinity"]`  |
+| Name                      | Description                                                                             | Value           |
+| ------------------------- | --------------------------------------------------------------------------------------- | --------------- |
+| `kubeVersion`             | Force target Kubernetes version (using Helm capabilities if not set)                    | `""`            |
+| `nameOverride`            | String to partially override mariadb.fullname                                           | `""`            |
+| `fullnameOverride`        | String to fully override mariadb.fullname                                               | `""`            |
+| `clusterDomain`           | Default Kubernetes cluster domain                                                       | `cluster.local` |
+| `commonAnnotations`       | Common annotations to add to all MariaDB resources (sub-charts are not considered)      | `{}`            |
+| `commonLabels`            | Common labels to add to all MariaDB resources (sub-charts are not considered)           | `{}`            |
+| `schedulerName`           | Name of the scheduler (other than default) to dispatch pods                             | `""`            |
+| `runtimeClassName`        | Name of the Runtime Class for all MariaDB pods                                          | `""`            |
+| `extraDeploy`             | Array of extra objects to deploy with the release (evaluated as a template)             | `[]`            |
+| `diagnosticMode.enabled`  | Enable diagnostic mode (all probes will be disabled and the command will be overridden) | `false`         |
+| `diagnosticMode.command`  | Command to override all containers in the deployment                                    | `["sleep"]`     |
+| `diagnosticMode.args`     | Args to override all containers in the deployment                                       | `["infinity"]`  |
+| `serviceBindings.enabled` | Create secret for service binding (Experimental)                                        | `false`         |
 
-### PostgreSQL common parameters
+### MariaDB common parameters
 
-| Name                                     | Description                                                                                                                                                                                                                                                                                                                                   | Value                        |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| `image.registry`                         | PostgreSQL image registry                                                                                                                                                                                                                                                                                                                     | `REGISTRY_NAME`              |
-| `image.repository`                       | PostgreSQL image repository                                                                                                                                                                                                                                                                                                                   | `REPOSITORY_NAME/postgresql` |
-| `image.digest`                           | PostgreSQL image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag                                                                                                                                                                                                                                    | `""`                         |
-| `image.pullPolicy`                       | PostgreSQL image pull policy                                                                                                                                                                                                                                                                                                                  | `IfNotPresent`               |
-| `image.pullSecrets`                      | Specify image pull secrets                                                                                                                                                                                                                                                                                                                    | `[]`                         |
-| `image.debug`                            | Specify if debug values should be set                                                                                                                                                                                                                                                                                                         | `false`                      |
-| `auth.enablePostgresUser`                | Assign a password to the "postgres" admin user. Otherwise, remote access will be blocked for this user                                                                                                                                                                                                                                        | `true`                       |
-| `auth.postgresPassword`                  | Password for the "postgres" admin user. Ignored if `auth.existingSecret` is provided                                                                                                                                                                                                                                                          | `""`                         |
-| `auth.username`                          | Name for a custom user to create                                                                                                                                                                                                                                                                                                              | `""`                         |
-| `auth.password`                          | Password for the custom user to create. Ignored if `auth.existingSecret` is provided                                                                                                                                                                                                                                                          | `""`                         |
-| `auth.database`                          | Name for a custom database to create                                                                                                                                                                                                                                                                                                          | `""`                         |
-| `auth.replicationUsername`               | Name of the replication user                                                                                                                                                                                                                                                                                                                  | `repl_user`                  |
-| `auth.replicationPassword`               | Password for the replication user. Ignored if `auth.existingSecret` is provided                                                                                                                                                                                                                                                               | `""`                         |
-| `auth.existingSecret`                    | Name of existing secret to use for PostgreSQL credentials. `auth.postgresPassword`, `auth.password`, and `auth.replicationPassword` will be ignored and picked up from this secret. The secret might also contains the key `ldap-password` if LDAP is enabled. `ldap.bind_password` will be ignored and picked from this secret in this case. | `""`                         |
-| `auth.secretKeys.adminPasswordKey`       | Name of key in existing secret to use for PostgreSQL credentials. Only used when `auth.existingSecret` is set.                                                                                                                                                                                                                                | `postgres-password`          |
-| `auth.secretKeys.userPasswordKey`        | Name of key in existing secret to use for PostgreSQL credentials. Only used when `auth.existingSecret` is set.                                                                                                                                                                                                                                | `password`                   |
-| `auth.secretKeys.replicationPasswordKey` | Name of key in existing secret to use for PostgreSQL credentials. Only used when `auth.existingSecret` is set.                                                                                                                                                                                                                                | `replication-password`       |
-| `auth.usePasswordFiles`                  | Mount credentials as a files instead of using an environment variable                                                                                                                                                                                                                                                                         | `false`                      |
-| `architecture`                           | PostgreSQL architecture (`standalone` or `replication`)                                                                                                                                                                                                                                                                                       | `standalone`                 |
-| `replication.synchronousCommit`          | Set synchronous commit mode. Allowed values: `on`, `remote_apply`, `remote_write`, `local` and `off`                                                                                                                                                                                                                                          | `off`                        |
-| `replication.numSynchronousReplicas`     | Number of replicas that will have synchronous replication. Note: Cannot be greater than `readReplicas.replicaCount`.                                                                                                                                                                                                                          | `0`                          |
-| `replication.applicationName`            | Cluster application name. Useful for advanced replication settings                                                                                                                                                                                                                                                                            | `my_application`             |
-| `containerPorts.postgresql`              | PostgreSQL container port                                                                                                                                                                                                                                                                                                                     | `5432`                       |
-| `audit.logHostname`                      | Log client hostnames                                                                                                                                                                                                                                                                                                                          | `false`                      |
-| `audit.logConnections`                   | Add client log-in operations to the log file                                                                                                                                                                                                                                                                                                  | `false`                      |
-| `audit.logDisconnections`                | Add client log-outs operations to the log file                                                                                                                                                                                                                                                                                                | `false`                      |
-| `audit.pgAuditLog`                       | Add operations to log using the pgAudit extension                                                                                                                                                                                                                                                                                             | `""`                         |
-| `audit.pgAuditLogCatalog`                | Log catalog using pgAudit                                                                                                                                                                                                                                                                                                                     | `off`                        |
-| `audit.clientMinMessages`                | Message log level to share with the user                                                                                                                                                                                                                                                                                                      | `error`                      |
-| `audit.logLinePrefix`                    | Template for log line prefix (default if not set)                                                                                                                                                                                                                                                                                             | `""`                         |
-| `audit.logTimezone`                      | Timezone for the log timestamps                                                                                                                                                                                                                                                                                                               | `""`                         |
-| `ldap.enabled`                           | Enable LDAP support                                                                                                                                                                                                                                                                                                                           | `false`                      |
-| `ldap.server`                            | IP address or name of the LDAP server.                                                                                                                                                                                                                                                                                                        | `""`                         |
-| `ldap.port`                              | Port number on the LDAP server to connect to                                                                                                                                                                                                                                                                                                  | `""`                         |
-| `ldap.prefix`                            | String to prepend to the user name when forming the DN to bind                                                                                                                                                                                                                                                                                | `""`                         |
-| `ldap.suffix`                            | String to append to the user name when forming the DN to bind                                                                                                                                                                                                                                                                                 | `""`                         |
-| `ldap.basedn`                            | Root DN to begin the search for the user in                                                                                                                                                                                                                                                                                                   | `""`                         |
-| `ldap.binddn`                            | DN of user to bind to LDAP                                                                                                                                                                                                                                                                                                                    | `""`                         |
-| `ldap.bindpw`                            | Password for the user to bind to LDAP                                                                                                                                                                                                                                                                                                         | `""`                         |
-| `ldap.searchAttribute`                   | Attribute to match against the user name in the search                                                                                                                                                                                                                                                                                        | `""`                         |
-| `ldap.searchFilter`                      | The search filter to use when doing search+bind authentication                                                                                                                                                                                                                                                                                | `""`                         |
-| `ldap.scheme`                            | Set to `ldaps` to use LDAPS                                                                                                                                                                                                                                                                                                                   | `""`                         |
-| `ldap.tls.enabled`                       | Se to true to enable TLS encryption                                                                                                                                                                                                                                                                                                           | `false`                      |
-| `ldap.uri`                               | LDAP URL beginning in the form `ldap[s]://host[:port]/basedn`. If provided, all the other LDAP parameters will be ignored.                                                                                                                                                                                                                    | `""`                         |
-| `postgresqlDataDir`                      | PostgreSQL data dir folder                                                                                                                                                                                                                                                                                                                    | `/bitnami/postgresql/data`   |
-| `postgresqlSharedPreloadLibraries`       | Shared preload libraries (comma-separated list)                                                                                                                                                                                                                                                                                               | `pgaudit`                    |
-| `shmVolume.enabled`                      | Enable emptyDir volume for /dev/shm for PostgreSQL pod(s)                                                                                                                                                                                                                                                                                     | `true`                       |
-| `shmVolume.sizeLimit`                    | Set this to enable a size limit on the shm tmpfs                                                                                                                                                                                                                                                                                              | `""`                         |
-| `tls.enabled`                            | Enable TLS traffic support                                                                                                                                                                                                                                                                                                                    | `false`                      |
-| `tls.autoGenerated`                      | Generate automatically self-signed TLS certificates                                                                                                                                                                                                                                                                                           | `false`                      |
-| `tls.preferServerCiphers`                | Whether to use the server's TLS cipher preferences rather than the client's                                                                                                                                                                                                                                                                   | `true`                       |
-| `tls.certificatesSecret`                 | Name of an existing secret that contains the certificates                                                                                                                                                                                                                                                                                     | `""`                         |
-| `tls.certFilename`                       | Certificate filename                                                                                                                                                                                                                                                                                                                          | `""`                         |
-| `tls.certKeyFilename`                    | Certificate key filename                                                                                                                                                                                                                                                                                                                      | `""`                         |
-| `tls.certCAFilename`                     | CA Certificate filename                                                                                                                                                                                                                                                                                                                       | `""`                         |
-| `tls.crlFilename`                        | File containing a Certificate Revocation List                                                                                                                                                                                                                                                                                                 | `""`                         |
+| Name                       | Description                                                                                                                                                                                                                                                                   | Value                     |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `image.registry`           | MariaDB image registry                                                                                                                                                                                                                                                        | `REGISTRY_NAME`           |
+| `image.repository`         | MariaDB image repository                                                                                                                                                                                                                                                      | `REPOSITORY_NAME/mariadb` |
+| `image.digest`             | MariaDB image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag                                                                                                                                                                       | `""`                      |
+| `image.pullPolicy`         | MariaDB image pull policy                                                                                                                                                                                                                                                     | `IfNotPresent`            |
+| `image.pullSecrets`        | Specify docker-registry secret names as an array                                                                                                                                                                                                                              | `[]`                      |
+| `image.debug`              | Specify if debug logs should be enabled                                                                                                                                                                                                                                       | `false`                   |
+| `architecture`             | MariaDB architecture (`standalone` or `replication`)                                                                                                                                                                                                                          | `standalone`              |
+| `auth.rootPassword`        | Password for the `root` user. Ignored if existing secret is provided.                                                                                                                                                                                                         | `""`                      |
+| `auth.database`            | Name for a custom database to create                                                                                                                                                                                                                                          | `my_database`             |
+| `auth.username`            | Name for a custom user to create                                                                                                                                                                                                                                              | `""`                      |
+| `auth.password`            | Password for the new user. Ignored if existing secret is provided                                                                                                                                                                                                             | `""`                      |
+| `auth.replicationUser`     | MariaDB replication user                                                                                                                                                                                                                                                      | `replicator`              |
+| `auth.replicationPassword` | MariaDB replication user password. Ignored if existing secret is provided                                                                                                                                                                                                     | `""`                      |
+| `auth.existingSecret`      | Use existing secret for password details (`auth.rootPassword`, `auth.password`, `auth.replicationPassword` will be ignored and picked up from this secret). The secret has to contain the keys `mariadb-root-password`, `mariadb-replication-password` and `mariadb-password` | `""`                      |
+| `auth.forcePassword`       | Force users to specify required passwords                                                                                                                                                                                                                                     | `false`                   |
+| `auth.usePasswordFiles`    | Mount credentials as files instead of using environment variables                                                                                                                                                                                                             | `false`                   |
+| `auth.customPasswordFiles` | Use custom password files when `auth.usePasswordFiles` is set to `true`. Define path for keys `root` and `user`, also define `replicator` if `architecture` is set to `replication`                                                                                           | `{}`                      |
+| `initdbScripts`            | Dictionary of initdb scripts                                                                                                                                                                                                                                                  | `{}`                      |
+| `initdbScriptsConfigMap`   | ConfigMap with the initdb scripts (Note: Overrides `initdbScripts`)                                                                                                                                                                                                           | `""`                      |
 
-### PostgreSQL Primary parameters
+### MariaDB Primary parameters
 
-| Name                                                        | Description                                                                                                              | Value                 |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------- |
-| `primary.name`                                              | Name of the primary database (eg primary, master, leader, ...)                                                           | `primary`             |
-| `primary.configuration`                                     | PostgreSQL Primary main configuration to be injected as ConfigMap                                                        | `""`                  |
-| `primary.pgHbaConfiguration`                                | PostgreSQL Primary client authentication configuration                                                                   | `""`                  |
-| `primary.existingConfigmap`                                 | Name of an existing ConfigMap with PostgreSQL Primary configuration                                                      | `""`                  |
-| `primary.extendedConfiguration`                             | Extended PostgreSQL Primary configuration (appended to main or default configuration)                                    | `""`                  |
-| `primary.existingExtendedConfigmap`                         | Name of an existing ConfigMap with PostgreSQL Primary extended configuration                                             | `""`                  |
-| `primary.initdb.args`                                       | PostgreSQL initdb extra arguments                                                                                        | `""`                  |
-| `primary.initdb.postgresqlWalDir`                           | Specify a custom location for the PostgreSQL transaction log                                                             | `""`                  |
-| `primary.initdb.scripts`                                    | Dictionary of initdb scripts                                                                                             | `{}`                  |
-| `primary.initdb.scriptsConfigMap`                           | ConfigMap with scripts to be run at first boot                                                                           | `""`                  |
-| `primary.initdb.scriptsSecret`                              | Secret with scripts to be run at first boot (in case it contains sensitive information)                                  | `""`                  |
-| `primary.initdb.user`                                       | Specify the PostgreSQL username to execute the initdb scripts                                                            | `""`                  |
-| `primary.initdb.password`                                   | Specify the PostgreSQL password to execute the initdb scripts                                                            | `""`                  |
-| `primary.standby.enabled`                                   | Whether to enable current cluster's primary as standby server of another cluster or not                                  | `false`               |
-| `primary.standby.primaryHost`                               | The Host of replication primary in the other cluster                                                                     | `""`                  |
-| `primary.standby.primaryPort`                               | The Port of replication primary in the other cluster                                                                     | `""`                  |
-| `primary.extraEnvVars`                                      | Array with extra environment variables to add to PostgreSQL Primary nodes                                                | `[]`                  |
-| `primary.extraEnvVarsCM`                                    | Name of existing ConfigMap containing extra env vars for PostgreSQL Primary nodes                                        | `""`                  |
-| `primary.extraEnvVarsSecret`                                | Name of existing Secret containing extra env vars for PostgreSQL Primary nodes                                           | `""`                  |
-| `primary.command`                                           | Override default container command (useful when using custom images)                                                     | `[]`                  |
-| `primary.args`                                              | Override default container args (useful when using custom images)                                                        | `[]`                  |
-| `primary.livenessProbe.enabled`                             | Enable livenessProbe on PostgreSQL Primary containers                                                                    | `true`                |
-| `primary.livenessProbe.initialDelaySeconds`                 | Initial delay seconds for livenessProbe                                                                                  | `30`                  |
-| `primary.livenessProbe.periodSeconds`                       | Period seconds for livenessProbe                                                                                         | `10`                  |
-| `primary.livenessProbe.timeoutSeconds`                      | Timeout seconds for livenessProbe                                                                                        | `5`                   |
-| `primary.livenessProbe.failureThreshold`                    | Failure threshold for livenessProbe                                                                                      | `6`                   |
-| `primary.livenessProbe.successThreshold`                    | Success threshold for livenessProbe                                                                                      | `1`                   |
-| `primary.readinessProbe.enabled`                            | Enable readinessProbe on PostgreSQL Primary containers                                                                   | `true`                |
-| `primary.readinessProbe.initialDelaySeconds`                | Initial delay seconds for readinessProbe                                                                                 | `5`                   |
-| `primary.readinessProbe.periodSeconds`                      | Period seconds for readinessProbe                                                                                        | `10`                  |
-| `primary.readinessProbe.timeoutSeconds`                     | Timeout seconds for readinessProbe                                                                                       | `5`                   |
-| `primary.readinessProbe.failureThreshold`                   | Failure threshold for readinessProbe                                                                                     | `6`                   |
-| `primary.readinessProbe.successThreshold`                   | Success threshold for readinessProbe                                                                                     | `1`                   |
-| `primary.startupProbe.enabled`                              | Enable startupProbe on PostgreSQL Primary containers                                                                     | `false`               |
-| `primary.startupProbe.initialDelaySeconds`                  | Initial delay seconds for startupProbe                                                                                   | `30`                  |
-| `primary.startupProbe.periodSeconds`                        | Period seconds for startupProbe                                                                                          | `10`                  |
-| `primary.startupProbe.timeoutSeconds`                       | Timeout seconds for startupProbe                                                                                         | `1`                   |
-| `primary.startupProbe.failureThreshold`                     | Failure threshold for startupProbe                                                                                       | `15`                  |
-| `primary.startupProbe.successThreshold`                     | Success threshold for startupProbe                                                                                       | `1`                   |
-| `primary.customLivenessProbe`                               | Custom livenessProbe that overrides the default one                                                                      | `{}`                  |
-| `primary.customReadinessProbe`                              | Custom readinessProbe that overrides the default one                                                                     | `{}`                  |
-| `primary.customStartupProbe`                                | Custom startupProbe that overrides the default one                                                                       | `{}`                  |
-| `primary.lifecycleHooks`                                    | for the PostgreSQL Primary container to automate configuration before or after startup                                   | `{}`                  |
-| `primary.resources.limits`                                  | The resources limits for the PostgreSQL Primary containers                                                               | `{}`                  |
-| `primary.resources.requests.memory`                         | The requested memory for the PostgreSQL Primary containers                                                               | `256Mi`               |
-| `primary.resources.requests.cpu`                            | The requested cpu for the PostgreSQL Primary containers                                                                  | `250m`                |
-| `primary.podSecurityContext.enabled`                        | Enable security context                                                                                                  | `true`                |
-| `primary.podSecurityContext.fsGroupChangePolicy`            | Set filesystem group change policy                                                                                       | `Always`              |
-| `primary.podSecurityContext.sysctls`                        | Set kernel settings using the sysctl interface                                                                           | `[]`                  |
-| `primary.podSecurityContext.supplementalGroups`             | Set filesystem extra groups                                                                                              | `[]`                  |
-| `primary.podSecurityContext.fsGroup`                        | Group ID for the pod                                                                                                     | `1001`                |
-| `primary.containerSecurityContext.enabled`                  | Enabled containers' Security Context                                                                                     | `true`                |
-| `primary.containerSecurityContext.seLinuxOptions`           | Set SELinux options in container                                                                                         | `nil`                 |
-| `primary.containerSecurityContext.runAsUser`                | Set containers' Security Context runAsUser                                                                               | `1001`                |
-| `primary.containerSecurityContext.runAsNonRoot`             | Set container's Security Context runAsNonRoot                                                                            | `true`                |
-| `primary.containerSecurityContext.privileged`               | Set container's Security Context privileged                                                                              | `false`               |
-| `primary.containerSecurityContext.readOnlyRootFilesystem`   | Set container's Security Context readOnlyRootFilesystem                                                                  | `false`               |
-| `primary.containerSecurityContext.allowPrivilegeEscalation` | Set container's Security Context allowPrivilegeEscalation                                                                | `false`               |
-| `primary.containerSecurityContext.capabilities.drop`        | List of capabilities to be dropped                                                                                       | `["ALL"]`             |
-| `primary.containerSecurityContext.seccompProfile.type`      | Set container's Security Context seccomp profile                                                                         | `RuntimeDefault`      |
-| `primary.automountServiceAccountToken`                      | Mount Service Account token in pod                                                                                       | `false`               |
-| `primary.hostAliases`                                       | PostgreSQL primary pods host aliases                                                                                     | `[]`                  |
-| `primary.hostNetwork`                                       | Specify if host network should be enabled for PostgreSQL pod (postgresql primary)                                        | `false`               |
-| `primary.hostIPC`                                           | Specify if host IPC should be enabled for PostgreSQL pod (postgresql primary)                                            | `false`               |
-| `primary.labels`                                            | Map of labels to add to the statefulset (postgresql primary)                                                             | `{}`                  |
-| `primary.annotations`                                       | Annotations for PostgreSQL primary pods                                                                                  | `{}`                  |
-| `primary.podLabels`                                         | Map of labels to add to the pods (postgresql primary)                                                                    | `{}`                  |
-| `primary.podAnnotations`                                    | Map of annotations to add to the pods (postgresql primary)                                                               | `{}`                  |
-| `primary.podAffinityPreset`                                 | PostgreSQL primary pod affinity preset. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard`           | `""`                  |
-| `primary.podAntiAffinityPreset`                             | PostgreSQL primary pod anti-affinity preset. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard`      | `soft`                |
-| `primary.nodeAffinityPreset.type`                           | PostgreSQL primary node affinity preset type. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard`     | `""`                  |
-| `primary.nodeAffinityPreset.key`                            | PostgreSQL primary node label key to match Ignored if `primary.affinity` is set.                                         | `""`                  |
-| `primary.nodeAffinityPreset.values`                         | PostgreSQL primary node label values to match. Ignored if `primary.affinity` is set.                                     | `[]`                  |
-| `primary.affinity`                                          | Affinity for PostgreSQL primary pods assignment                                                                          | `{}`                  |
-| `primary.nodeSelector`                                      | Node labels for PostgreSQL primary pods assignment                                                                       | `{}`                  |
-| `primary.tolerations`                                       | Tolerations for PostgreSQL primary pods assignment                                                                       | `[]`                  |
-| `primary.topologySpreadConstraints`                         | Topology Spread Constraints for pod assignment spread across your cluster among failure-domains. Evaluated as a template | `[]`                  |
-| `primary.priorityClassName`                                 | Priority Class to use for each pod (postgresql primary)                                                                  | `""`                  |
-| `primary.schedulerName`                                     | Use an alternate scheduler, e.g. "stork".                                                                                | `""`                  |
-| `primary.terminationGracePeriodSeconds`                     | Seconds PostgreSQL primary pod needs to terminate gracefully                                                             | `""`                  |
-| `primary.updateStrategy.type`                               | PostgreSQL Primary statefulset strategy type                                                                             | `RollingUpdate`       |
-| `primary.updateStrategy.rollingUpdate`                      | PostgreSQL Primary statefulset rolling update configuration parameters                                                   | `{}`                  |
-| `primary.extraVolumeMounts`                                 | Optionally specify extra list of additional volumeMounts for the PostgreSQL Primary container(s)                         | `[]`                  |
-| `primary.extraVolumes`                                      | Optionally specify extra list of additional volumes for the PostgreSQL Primary pod(s)                                    | `[]`                  |
-| `primary.sidecars`                                          | Add additional sidecar containers to the PostgreSQL Primary pod(s)                                                       | `[]`                  |
-| `primary.initContainers`                                    | Add additional init containers to the PostgreSQL Primary pod(s)                                                          | `[]`                  |
-| `primary.extraPodSpec`                                      | Optionally specify extra PodSpec for the PostgreSQL Primary pod(s)                                                       | `{}`                  |
-| `primary.networkPolicy.enabled`                             | Specifies whether a NetworkPolicy should be created                                                                      | `true`                |
-| `primary.networkPolicy.allowExternal`                       | Don't require server label for connections                                                                               | `true`                |
-| `primary.networkPolicy.allowExternalEgress`                 | Allow the pod to access any range of port and all destinations.                                                          | `false`               |
-| `primary.networkPolicy.extraIngress`                        | Add extra ingress rules to the NetworkPolice                                                                             | `[]`                  |
-| `primary.networkPolicy.extraEgress`                         | Add extra ingress rules to the NetworkPolicy                                                                             | `[]`                  |
-| `primary.networkPolicy.ingressNSMatchLabels`                | Labels to match to allow traffic from other namespaces                                                                   | `{}`                  |
-| `primary.networkPolicy.ingressNSPodMatchLabels`             | Pod labels to match to allow traffic from other namespaces                                                               | `{}`                  |
-| `primary.service.type`                                      | Kubernetes Service type                                                                                                  | `ClusterIP`           |
-| `primary.service.ports.postgresql`                          | PostgreSQL service port                                                                                                  | `5432`                |
-| `primary.service.nodePorts.postgresql`                      | Node port for PostgreSQL                                                                                                 | `""`                  |
-| `primary.service.clusterIP`                                 | Static clusterIP or None for headless services                                                                           | `""`                  |
-| `primary.service.annotations`                               | Annotations for PostgreSQL primary service                                                                               | `{}`                  |
-| `primary.service.loadBalancerIP`                            | Load balancer IP if service type is `LoadBalancer`                                                                       | `""`                  |
-| `primary.service.externalTrafficPolicy`                     | Enable client source IP preservation                                                                                     | `Cluster`             |
-| `primary.service.loadBalancerSourceRanges`                  | Addresses that are allowed when service is LoadBalancer                                                                  | `[]`                  |
-| `primary.service.extraPorts`                                | Extra ports to expose in the PostgreSQL primary service                                                                  | `[]`                  |
-| `primary.service.sessionAffinity`                           | Session Affinity for Kubernetes service, can be "None" or "ClientIP"                                                     | `None`                |
-| `primary.service.sessionAffinityConfig`                     | Additional settings for the sessionAffinity                                                                              | `{}`                  |
-| `primary.service.headless.annotations`                      | Additional custom annotations for headless PostgreSQL primary service                                                    | `{}`                  |
-| `primary.persistence.enabled`                               | Enable PostgreSQL Primary data persistence using PVC                                                                     | `true`                |
-| `primary.persistence.existingClaim`                         | Name of an existing PVC to use                                                                                           | `""`                  |
-| `primary.persistence.mountPath`                             | The path the volume will be mounted at                                                                                   | `/bitnami/postgresql` |
-| `primary.persistence.subPath`                               | The subdirectory of the volume to mount to                                                                               | `""`                  |
-| `primary.persistence.storageClass`                          | PVC Storage Class for PostgreSQL Primary data volume                                                                     | `""`                  |
-| `primary.persistence.accessModes`                           | PVC Access Mode for PostgreSQL volume                                                                                    | `["ReadWriteOnce"]`   |
-| `primary.persistence.size`                                  | PVC Storage Request for PostgreSQL volume                                                                                | `8Gi`                 |
-| `primary.persistence.annotations`                           | Annotations for the PVC                                                                                                  | `{}`                  |
-| `primary.persistence.labels`                                | Labels for the PVC                                                                                                       | `{}`                  |
-| `primary.persistence.selector`                              | Selector to match an existing Persistent Volume (this value is evaluated as a template)                                  | `{}`                  |
-| `primary.persistence.dataSource`                            | Custom PVC data source                                                                                                   | `{}`                  |
-| `primary.persistentVolumeClaimRetentionPolicy.enabled`      | Enable Persistent volume retention policy for Primary Statefulset                                                        | `false`               |
-| `primary.persistentVolumeClaimRetentionPolicy.whenScaled`   | Volume retention behavior when the replica count of the StatefulSet is reduced                                           | `Retain`              |
-| `primary.persistentVolumeClaimRetentionPolicy.whenDeleted`  | Volume retention behavior that applies when the StatefulSet is deleted                                                   | `Retain`              |
+| Name                                                        | Description                                                                                                       | Value               |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------- |
+| `primary.name`                                              | Name of the primary database (eg primary, master, leader, ...)                                                    | `primary`           |
+| `primary.command`                                           | Override default container command on MariaDB Primary container(s) (useful when using custom images)              | `[]`                |
+| `primary.args`                                              | Override default container args on MariaDB Primary container(s) (useful when using custom images)                 | `[]`                |
+| `primary.lifecycleHooks`                                    | for the MariaDB Primary container(s) to automate configuration before or after startup                            | `{}`                |
+| `primary.automountServiceAccountToken`                      | Mount Service Account token in pod                                                                                | `false`             |
+| `primary.hostAliases`                                       | Add deployment host aliases                                                                                       | `[]`                |
+| `primary.configuration`                                     | MariaDB Primary configuration to be injected as ConfigMap                                                         | `""`                |
+| `primary.existingConfigmap`                                 | Name of existing ConfigMap with MariaDB Primary configuration.                                                    | `""`                |
+| `primary.updateStrategy.type`                               | MariaDB primary statefulset strategy type                                                                         | `RollingUpdate`     |
+| `primary.rollingUpdatePartition`                            | Partition update strategy for Mariadb Primary statefulset                                                         | `""`                |
+| `primary.podAnnotations`                                    | Additional pod annotations for MariaDB primary pods                                                               | `{}`                |
+| `primary.podLabels`                                         | Extra labels for MariaDB primary pods                                                                             | `{}`                |
+| `primary.podAffinityPreset`                                 | MariaDB primary pod affinity preset. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard`       | `""`                |
+| `primary.podAntiAffinityPreset`                             | MariaDB primary pod anti-affinity preset. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard`  | `soft`              |
+| `primary.nodeAffinityPreset.type`                           | MariaDB primary node affinity preset type. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard` | `""`                |
+| `primary.nodeAffinityPreset.key`                            | MariaDB primary node label key to match Ignored if `primary.affinity` is set.                                     | `""`                |
+| `primary.nodeAffinityPreset.values`                         | MariaDB primary node label values to match. Ignored if `primary.affinity` is set.                                 | `[]`                |
+| `primary.affinity`                                          | Affinity for MariaDB primary pods assignment                                                                      | `{}`                |
+| `primary.nodeSelector`                                      | Node labels for MariaDB primary pods assignment                                                                   | `{}`                |
+| `primary.tolerations`                                       | Tolerations for MariaDB primary pods assignment                                                                   | `[]`                |
+| `primary.schedulerName`                                     | Name of the k8s scheduler (other than default)                                                                    | `""`                |
+| `primary.podManagementPolicy`                               | podManagementPolicy to manage scaling operation of MariaDB primary pods                                           | `""`                |
+| `primary.topologySpreadConstraints`                         | Topology Spread Constraints for MariaDB primary pods assignment                                                   | `[]`                |
+| `primary.priorityClassName`                                 | Priority class for MariaDB primary pods assignment                                                                | `""`                |
+| `primary.runtimeClassName`                                  | Runtime Class for MariaDB primary pods                                                                            | `""`                |
+| `primary.podSecurityContext.enabled`                        | Enable security context for MariaDB primary pods                                                                  | `true`              |
+| `primary.podSecurityContext.fsGroupChangePolicy`            | Set filesystem group change policy                                                                                | `Always`            |
+| `primary.podSecurityContext.sysctls`                        | Set kernel settings using the sysctl interface                                                                    | `[]`                |
+| `primary.podSecurityContext.supplementalGroups`             | Set filesystem extra groups                                                                                       | `[]`                |
+| `primary.podSecurityContext.fsGroup`                        | Group ID for the mounted volumes' filesystem                                                                      | `1001`              |
+| `primary.containerSecurityContext.enabled`                  | MariaDB primary container securityContext                                                                         | `true`              |
+| `primary.containerSecurityContext.seLinuxOptions`           | Set SELinux options in container                                                                                  | `nil`               |
+| `primary.containerSecurityContext.runAsUser`                | User ID for the MariaDB primary container                                                                         | `1001`              |
+| `primary.containerSecurityContext.runAsNonRoot`             | Set primary container's Security Context runAsNonRoot                                                             | `true`              |
+| `primary.containerSecurityContext.privileged`               | Set primary container's Security Context privileged                                                               | `false`             |
+| `primary.containerSecurityContext.allowPrivilegeEscalation` | Set primary container's Security Context allowPrivilegeEscalation                                                 | `false`             |
+| `primary.containerSecurityContext.capabilities.drop`        | List of capabilities to be dropped                                                                                | `["ALL"]`           |
+| `primary.containerSecurityContext.seccompProfile.type`      | Set container's Security Context seccomp profile                                                                  | `RuntimeDefault`    |
+| `primary.resources.limits`                                  | The resources limits for MariaDB primary containers                                                               | `{}`                |
+| `primary.resources.requests`                                | The requested resources for MariaDB primary containers                                                            | `{}`                |
+| `primary.startupProbe.enabled`                              | Enable startupProbe                                                                                               | `false`             |
+| `primary.startupProbe.initialDelaySeconds`                  | Initial delay seconds for startupProbe                                                                            | `120`               |
+| `primary.startupProbe.periodSeconds`                        | Period seconds for startupProbe                                                                                   | `15`                |
+| `primary.startupProbe.timeoutSeconds`                       | Timeout seconds for startupProbe                                                                                  | `5`                 |
+| `primary.startupProbe.failureThreshold`                     | Failure threshold for startupProbe                                                                                | `10`                |
+| `primary.startupProbe.successThreshold`                     | Success threshold for startupProbe                                                                                | `1`                 |
+| `primary.livenessProbe.enabled`                             | Enable livenessProbe                                                                                              | `true`              |
+| `primary.livenessProbe.initialDelaySeconds`                 | Initial delay seconds for livenessProbe                                                                           | `120`               |
+| `primary.livenessProbe.periodSeconds`                       | Period seconds for livenessProbe                                                                                  | `10`                |
+| `primary.livenessProbe.timeoutSeconds`                      | Timeout seconds for livenessProbe                                                                                 | `1`                 |
+| `primary.livenessProbe.failureThreshold`                    | Failure threshold for livenessProbe                                                                               | `3`                 |
+| `primary.livenessProbe.successThreshold`                    | Success threshold for livenessProbe                                                                               | `1`                 |
+| `primary.readinessProbe.enabled`                            | Enable readinessProbe                                                                                             | `true`              |
+| `primary.readinessProbe.initialDelaySeconds`                | Initial delay seconds for readinessProbe                                                                          | `30`                |
+| `primary.readinessProbe.periodSeconds`                      | Period seconds for readinessProbe                                                                                 | `10`                |
+| `primary.readinessProbe.timeoutSeconds`                     | Timeout seconds for readinessProbe                                                                                | `1`                 |
+| `primary.readinessProbe.failureThreshold`                   | Failure threshold for readinessProbe                                                                              | `3`                 |
+| `primary.readinessProbe.successThreshold`                   | Success threshold for readinessProbe                                                                              | `1`                 |
+| `primary.customStartupProbe`                                | Override default startup probe for MariaDB primary containers                                                     | `{}`                |
+| `primary.customLivenessProbe`                               | Override default liveness probe for MariaDB primary containers                                                    | `{}`                |
+| `primary.customReadinessProbe`                              | Override default readiness probe for MariaDB primary containers                                                   | `{}`                |
+| `primary.startupWaitOptions`                                | Override default builtin startup wait check options for MariaDB primary containers                                | `{}`                |
+| `primary.extraFlags`                                        | MariaDB primary additional command line flags                                                                     | `""`                |
+| `primary.extraEnvVars`                                      | Extra environment variables to be set on MariaDB primary containers                                               | `[]`                |
+| `primary.extraEnvVarsCM`                                    | Name of existing ConfigMap containing extra env vars for MariaDB primary containers                               | `""`                |
+| `primary.extraEnvVarsSecret`                                | Name of existing Secret containing extra env vars for MariaDB primary containers                                  | `""`                |
+| `primary.persistence.enabled`                               | Enable persistence on MariaDB primary replicas using a `PersistentVolumeClaim`. If false, use emptyDir            | `true`              |
+| `primary.persistence.existingClaim`                         | Name of an existing `PersistentVolumeClaim` for MariaDB primary replicas                                          | `""`                |
+| `primary.persistence.subPath`                               | Subdirectory of the volume to mount at                                                                            | `""`                |
+| `primary.persistence.storageClass`                          | MariaDB primary persistent volume storage Class                                                                   | `""`                |
+| `primary.persistence.labels`                                | Labels for the PVC                                                                                                | `{}`                |
+| `primary.persistence.annotations`                           | MariaDB primary persistent volume claim annotations                                                               | `{}`                |
+| `primary.persistence.accessModes`                           | MariaDB primary persistent volume access Modes                                                                    | `["ReadWriteOnce"]` |
+| `primary.persistence.size`                                  | MariaDB primary persistent volume size                                                                            | `8Gi`               |
+| `primary.persistence.selector`                              | Selector to match an existing Persistent Volume                                                                   | `{}`                |
+| `primary.extraVolumes`                                      | Optionally specify extra list of additional volumes to the MariaDB Primary pod(s)                                 | `[]`                |
+| `primary.extraVolumeMounts`                                 | Optionally specify extra list of additional volumeMounts for the MariaDB Primary container(s)                     | `[]`                |
+| `primary.initContainers`                                    | Add additional init containers for the MariaDB Primary pod(s)                                                     | `[]`                |
+| `primary.sidecars`                                          | Add additional sidecar containers for the MariaDB Primary pod(s)                                                  | `[]`                |
+| `primary.service.type`                                      | MariaDB Primary Kubernetes service type                                                                           | `ClusterIP`         |
+| `primary.service.ports.mysql`                               | MariaDB Primary Kubernetes service port for MariaDB                                                               | `3306`              |
+| `primary.service.ports.metrics`                             | MariaDB Primary Kubernetes service port for metrics                                                               | `9104`              |
+| `primary.service.nodePorts.mysql`                           | MariaDB Primary Kubernetes service node port                                                                      | `""`                |
+| `primary.service.clusterIP`                                 | MariaDB Primary Kubernetes service clusterIP IP                                                                   | `""`                |
+| `primary.service.loadBalancerIP`                            | MariaDB Primary loadBalancerIP if service type is `LoadBalancer`                                                  | `""`                |
+| `primary.service.externalTrafficPolicy`                     | Enable client source IP preservation                                                                              | `Cluster`           |
+| `primary.service.loadBalancerSourceRanges`                  | Address that are allowed when MariaDB Primary service is LoadBalancer                                             | `[]`                |
+| `primary.service.extraPorts`                                | Extra ports to expose (normally used with the `sidecar` value)                                                    | `[]`                |
+| `primary.service.annotations`                               | Provide any additional annotations which may be required                                                          | `{}`                |
+| `primary.service.sessionAffinity`                           | Session Affinity for Kubernetes service, can be "None" or "ClientIP"                                              | `None`              |
+| `primary.service.sessionAffinityConfig`                     | Additional settings for the sessionAffinity                                                                       | `{}`                |
+| `primary.pdb.create`                                        | Enable/disable a Pod Disruption Budget creation for MariaDB primary pods                                          | `false`             |
+| `primary.pdb.minAvailable`                                  | Minimum number/percentage of MariaDB primary pods that must still be available after the eviction                 | `1`                 |
+| `primary.pdb.maxUnavailable`                                | Maximum number/percentage of MariaDB primary pods that can be unavailable after the eviction                      | `""`                |
+| `primary.revisionHistoryLimit`                              | Maximum number of revisions that will be maintained in the StatefulSet                                            | `10`                |
 
-### PostgreSQL read only replica parameters (only used when `architecture` is set to `replication`)
+### MariaDB Secondary parameters
 
-| Name                                                             | Description                                                                                                              | Value                 |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------- |
-| `readReplicas.name`                                              | Name of the read replicas database (eg secondary, slave, ...)                                                            | `read`                |
-| `readReplicas.replicaCount`                                      | Number of PostgreSQL read only replicas                                                                                  | `1`                   |
-| `readReplicas.extendedConfiguration`                             | Extended PostgreSQL read only replicas configuration (appended to main or default configuration)                         | `""`                  |
-| `readReplicas.extraEnvVars`                                      | Array with extra environment variables to add to PostgreSQL read only nodes                                              | `[]`                  |
-| `readReplicas.extraEnvVarsCM`                                    | Name of existing ConfigMap containing extra env vars for PostgreSQL read only nodes                                      | `""`                  |
-| `readReplicas.extraEnvVarsSecret`                                | Name of existing Secret containing extra env vars for PostgreSQL read only nodes                                         | `""`                  |
-| `readReplicas.command`                                           | Override default container command (useful when using custom images)                                                     | `[]`                  |
-| `readReplicas.args`                                              | Override default container args (useful when using custom images)                                                        | `[]`                  |
-| `readReplicas.livenessProbe.enabled`                             | Enable livenessProbe on PostgreSQL read only containers                                                                  | `true`                |
-| `readReplicas.livenessProbe.initialDelaySeconds`                 | Initial delay seconds for livenessProbe                                                                                  | `30`                  |
-| `readReplicas.livenessProbe.periodSeconds`                       | Period seconds for livenessProbe                                                                                         | `10`                  |
-| `readReplicas.livenessProbe.timeoutSeconds`                      | Timeout seconds for livenessProbe                                                                                        | `5`                   |
-| `readReplicas.livenessProbe.failureThreshold`                    | Failure threshold for livenessProbe                                                                                      | `6`                   |
-| `readReplicas.livenessProbe.successThreshold`                    | Success threshold for livenessProbe                                                                                      | `1`                   |
-| `readReplicas.readinessProbe.enabled`                            | Enable readinessProbe on PostgreSQL read only containers                                                                 | `true`                |
-| `readReplicas.readinessProbe.initialDelaySeconds`                | Initial delay seconds for readinessProbe                                                                                 | `5`                   |
-| `readReplicas.readinessProbe.periodSeconds`                      | Period seconds for readinessProbe                                                                                        | `10`                  |
-| `readReplicas.readinessProbe.timeoutSeconds`                     | Timeout seconds for readinessProbe                                                                                       | `5`                   |
-| `readReplicas.readinessProbe.failureThreshold`                   | Failure threshold for readinessProbe                                                                                     | `6`                   |
-| `readReplicas.readinessProbe.successThreshold`                   | Success threshold for readinessProbe                                                                                     | `1`                   |
-| `readReplicas.startupProbe.enabled`                              | Enable startupProbe on PostgreSQL read only containers                                                                   | `false`               |
-| `readReplicas.startupProbe.initialDelaySeconds`                  | Initial delay seconds for startupProbe                                                                                   | `30`                  |
-| `readReplicas.startupProbe.periodSeconds`                        | Period seconds for startupProbe                                                                                          | `10`                  |
-| `readReplicas.startupProbe.timeoutSeconds`                       | Timeout seconds for startupProbe                                                                                         | `1`                   |
-| `readReplicas.startupProbe.failureThreshold`                     | Failure threshold for startupProbe                                                                                       | `15`                  |
-| `readReplicas.startupProbe.successThreshold`                     | Success threshold for startupProbe                                                                                       | `1`                   |
-| `readReplicas.customLivenessProbe`                               | Custom livenessProbe that overrides the default one                                                                      | `{}`                  |
-| `readReplicas.customReadinessProbe`                              | Custom readinessProbe that overrides the default one                                                                     | `{}`                  |
-| `readReplicas.customStartupProbe`                                | Custom startupProbe that overrides the default one                                                                       | `{}`                  |
-| `readReplicas.lifecycleHooks`                                    | for the PostgreSQL read only container to automate configuration before or after startup                                 | `{}`                  |
-| `readReplicas.resources.limits`                                  | The resources limits for the PostgreSQL read only containers                                                             | `{}`                  |
-| `readReplicas.resources.requests.memory`                         | The requested memory for the PostgreSQL read only containers                                                             | `256Mi`               |
-| `readReplicas.resources.requests.cpu`                            | The requested cpu for the PostgreSQL read only containers                                                                | `250m`                |
-| `readReplicas.podSecurityContext.enabled`                        | Enable security context                                                                                                  | `true`                |
-| `readReplicas.podSecurityContext.fsGroupChangePolicy`            | Set filesystem group change policy                                                                                       | `Always`              |
-| `readReplicas.podSecurityContext.sysctls`                        | Set kernel settings using the sysctl interface                                                                           | `[]`                  |
-| `readReplicas.podSecurityContext.supplementalGroups`             | Set filesystem extra groups                                                                                              | `[]`                  |
-| `readReplicas.podSecurityContext.fsGroup`                        | Group ID for the pod                                                                                                     | `1001`                |
-| `readReplicas.containerSecurityContext.enabled`                  | Enabled containers' Security Context                                                                                     | `true`                |
-| `readReplicas.containerSecurityContext.seLinuxOptions`           | Set SELinux options in container                                                                                         | `nil`                 |
-| `readReplicas.containerSecurityContext.runAsUser`                | Set containers' Security Context runAsUser                                                                               | `1001`                |
-| `readReplicas.containerSecurityContext.runAsNonRoot`             | Set container's Security Context runAsNonRoot                                                                            | `true`                |
-| `readReplicas.containerSecurityContext.privileged`               | Set container's Security Context privileged                                                                              | `false`               |
-| `readReplicas.containerSecurityContext.readOnlyRootFilesystem`   | Set container's Security Context readOnlyRootFilesystem                                                                  | `false`               |
-| `readReplicas.containerSecurityContext.allowPrivilegeEscalation` | Set container's Security Context allowPrivilegeEscalation                                                                | `false`               |
-| `readReplicas.containerSecurityContext.capabilities.drop`        | List of capabilities to be dropped                                                                                       | `["ALL"]`             |
-| `readReplicas.containerSecurityContext.seccompProfile.type`      | Set container's Security Context seccomp profile                                                                         | `RuntimeDefault`      |
-| `readReplicas.automountServiceAccountToken`                      | Mount Service Account token in pod                                                                                       | `false`               |
-| `readReplicas.hostAliases`                                       | PostgreSQL read only pods host aliases                                                                                   | `[]`                  |
-| `readReplicas.hostNetwork`                                       | Specify if host network should be enabled for PostgreSQL pod (PostgreSQL read only)                                      | `false`               |
-| `readReplicas.hostIPC`                                           | Specify if host IPC should be enabled for PostgreSQL pod (postgresql primary)                                            | `false`               |
-| `readReplicas.labels`                                            | Map of labels to add to the statefulset (PostgreSQL read only)                                                           | `{}`                  |
-| `readReplicas.annotations`                                       | Annotations for PostgreSQL read only pods                                                                                | `{}`                  |
-| `readReplicas.podLabels`                                         | Map of labels to add to the pods (PostgreSQL read only)                                                                  | `{}`                  |
-| `readReplicas.podAnnotations`                                    | Map of annotations to add to the pods (PostgreSQL read only)                                                             | `{}`                  |
-| `readReplicas.podAffinityPreset`                                 | PostgreSQL read only pod affinity preset. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard`         | `""`                  |
-| `readReplicas.podAntiAffinityPreset`                             | PostgreSQL read only pod anti-affinity preset. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard`    | `soft`                |
-| `readReplicas.nodeAffinityPreset.type`                           | PostgreSQL read only node affinity preset type. Ignored if `primary.affinity` is set. Allowed values: `soft` or `hard`   | `""`                  |
-| `readReplicas.nodeAffinityPreset.key`                            | PostgreSQL read only node label key to match Ignored if `primary.affinity` is set.                                       | `""`                  |
-| `readReplicas.nodeAffinityPreset.values`                         | PostgreSQL read only node label values to match. Ignored if `primary.affinity` is set.                                   | `[]`                  |
-| `readReplicas.affinity`                                          | Affinity for PostgreSQL read only pods assignment                                                                        | `{}`                  |
-| `readReplicas.nodeSelector`                                      | Node labels for PostgreSQL read only pods assignment                                                                     | `{}`                  |
-| `readReplicas.tolerations`                                       | Tolerations for PostgreSQL read only pods assignment                                                                     | `[]`                  |
-| `readReplicas.topologySpreadConstraints`                         | Topology Spread Constraints for pod assignment spread across your cluster among failure-domains. Evaluated as a template | `[]`                  |
-| `readReplicas.priorityClassName`                                 | Priority Class to use for each pod (PostgreSQL read only)                                                                | `""`                  |
-| `readReplicas.schedulerName`                                     | Use an alternate scheduler, e.g. "stork".                                                                                | `""`                  |
-| `readReplicas.terminationGracePeriodSeconds`                     | Seconds PostgreSQL read only pod needs to terminate gracefully                                                           | `""`                  |
-| `readReplicas.updateStrategy.type`                               | PostgreSQL read only statefulset strategy type                                                                           | `RollingUpdate`       |
-| `readReplicas.updateStrategy.rollingUpdate`                      | PostgreSQL read only statefulset rolling update configuration parameters                                                 | `{}`                  |
-| `readReplicas.extraVolumeMounts`                                 | Optionally specify extra list of additional volumeMounts for the PostgreSQL read only container(s)                       | `[]`                  |
-| `readReplicas.extraVolumes`                                      | Optionally specify extra list of additional volumes for the PostgreSQL read only pod(s)                                  | `[]`                  |
-| `readReplicas.sidecars`                                          | Add additional sidecar containers to the PostgreSQL read only pod(s)                                                     | `[]`                  |
-| `readReplicas.initContainers`                                    | Add additional init containers to the PostgreSQL read only pod(s)                                                        | `[]`                  |
-| `readReplicas.extraPodSpec`                                      | Optionally specify extra PodSpec for the PostgreSQL read only pod(s)                                                     | `{}`                  |
-| `readReplicas.networkPolicy.enabled`                             | Specifies whether a NetworkPolicy should be created                                                                      | `true`                |
-| `readReplicas.networkPolicy.allowExternal`                       | Don't require server label for connections                                                                               | `true`                |
-| `readReplicas.networkPolicy.allowExternalEgress`                 | Allow the pod to access any range of port and all destinations.                                                          | `false`               |
-| `readReplicas.networkPolicy.extraIngress`                        | Add extra ingress rules to the NetworkPolice                                                                             | `[]`                  |
-| `readReplicas.networkPolicy.extraEgress`                         | Add extra ingress rules to the NetworkPolicy                                                                             | `[]`                  |
-| `readReplicas.networkPolicy.ingressNSMatchLabels`                | Labels to match to allow traffic from other namespaces                                                                   | `{}`                  |
-| `readReplicas.networkPolicy.ingressNSPodMatchLabels`             | Pod labels to match to allow traffic from other namespaces                                                               | `{}`                  |
-| `readReplicas.service.type`                                      | Kubernetes Service type                                                                                                  | `ClusterIP`           |
-| `readReplicas.service.ports.postgresql`                          | PostgreSQL service port                                                                                                  | `5432`                |
-| `readReplicas.service.nodePorts.postgresql`                      | Node port for PostgreSQL                                                                                                 | `""`                  |
-| `readReplicas.service.clusterIP`                                 | Static clusterIP or None for headless services                                                                           | `""`                  |
-| `readReplicas.service.annotations`                               | Annotations for PostgreSQL read only service                                                                             | `{}`                  |
-| `readReplicas.service.loadBalancerIP`                            | Load balancer IP if service type is `LoadBalancer`                                                                       | `""`                  |
-| `readReplicas.service.externalTrafficPolicy`                     | Enable client source IP preservation                                                                                     | `Cluster`             |
-| `readReplicas.service.loadBalancerSourceRanges`                  | Addresses that are allowed when service is LoadBalancer                                                                  | `[]`                  |
-| `readReplicas.service.extraPorts`                                | Extra ports to expose in the PostgreSQL read only service                                                                | `[]`                  |
-| `readReplicas.service.sessionAffinity`                           | Session Affinity for Kubernetes service, can be "None" or "ClientIP"                                                     | `None`                |
-| `readReplicas.service.sessionAffinityConfig`                     | Additional settings for the sessionAffinity                                                                              | `{}`                  |
-| `readReplicas.service.headless.annotations`                      | Additional custom annotations for headless PostgreSQL read only service                                                  | `{}`                  |
-| `readReplicas.persistence.enabled`                               | Enable PostgreSQL read only data persistence using PVC                                                                   | `true`                |
-| `readReplicas.persistence.existingClaim`                         | Name of an existing PVC to use                                                                                           | `""`                  |
-| `readReplicas.persistence.mountPath`                             | The path the volume will be mounted at                                                                                   | `/bitnami/postgresql` |
-| `readReplicas.persistence.subPath`                               | The subdirectory of the volume to mount to                                                                               | `""`                  |
-| `readReplicas.persistence.storageClass`                          | PVC Storage Class for PostgreSQL read only data volume                                                                   | `""`                  |
-| `readReplicas.persistence.accessModes`                           | PVC Access Mode for PostgreSQL volume                                                                                    | `["ReadWriteOnce"]`   |
-| `readReplicas.persistence.size`                                  | PVC Storage Request for PostgreSQL volume                                                                                | `8Gi`                 |
-| `readReplicas.persistence.annotations`                           | Annotations for the PVC                                                                                                  | `{}`                  |
-| `readReplicas.persistence.labels`                                | Labels for the PVC                                                                                                       | `{}`                  |
-| `readReplicas.persistence.selector`                              | Selector to match an existing Persistent Volume (this value is evaluated as a template)                                  | `{}`                  |
-| `readReplicas.persistence.dataSource`                            | Custom PVC data source                                                                                                   | `{}`                  |
-| `readReplicas.persistentVolumeClaimRetentionPolicy.enabled`      | Enable Persistent volume retention policy for read only Statefulset                                                      | `false`               |
-| `readReplicas.persistentVolumeClaimRetentionPolicy.whenScaled`   | Volume retention behavior when the replica count of the StatefulSet is reduced                                           | `Retain`              |
-| `readReplicas.persistentVolumeClaimRetentionPolicy.whenDeleted`  | Volume retention behavior that applies when the StatefulSet is deleted                                                   | `Retain`              |
+| Name                                                          | Description                                                                                                           | Value               |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| `secondary.name`                                              | Name of the secondary database (eg secondary, slave, ...)                                                             | `secondary`         |
+| `secondary.replicaCount`                                      | Number of MariaDB secondary replicas                                                                                  | `1`                 |
+| `secondary.command`                                           | Override default container command on MariaDB Secondary container(s) (useful when using custom images)                | `[]`                |
+| `secondary.args`                                              | Override default container args on MariaDB Secondary container(s) (useful when using custom images)                   | `[]`                |
+| `secondary.lifecycleHooks`                                    | for the MariaDB Secondary container(s) to automate configuration before or after startup                              | `{}`                |
+| `secondary.automountServiceAccountToken`                      | Mount Service Account token in pod                                                                                    | `false`             |
+| `secondary.hostAliases`                                       | Add deployment host aliases                                                                                           | `[]`                |
+| `secondary.configuration`                                     | MariaDB Secondary configuration to be injected as ConfigMap                                                           | `""`                |
+| `secondary.existingConfigmap`                                 | Name of existing ConfigMap with MariaDB Secondary configuration.                                                      | `""`                |
+| `secondary.updateStrategy.type`                               | MariaDB secondary statefulset strategy type                                                                           | `RollingUpdate`     |
+| `secondary.rollingUpdatePartition`                            | Partition update strategy for Mariadb Secondary statefulset                                                           | `""`                |
+| `secondary.podAnnotations`                                    | Additional pod annotations for MariaDB secondary pods                                                                 | `{}`                |
+| `secondary.podLabels`                                         | Extra labels for MariaDB secondary pods                                                                               | `{}`                |
+| `secondary.podAffinityPreset`                                 | MariaDB secondary pod affinity preset. Ignored if `secondary.affinity` is set. Allowed values: `soft` or `hard`       | `""`                |
+| `secondary.podAntiAffinityPreset`                             | MariaDB secondary pod anti-affinity preset. Ignored if `secondary.affinity` is set. Allowed values: `soft` or `hard`  | `soft`              |
+| `secondary.nodeAffinityPreset.type`                           | MariaDB secondary node affinity preset type. Ignored if `secondary.affinity` is set. Allowed values: `soft` or `hard` | `""`                |
+| `secondary.nodeAffinityPreset.key`                            | MariaDB secondary node label key to match Ignored if `secondary.affinity` is set.                                     | `""`                |
+| `secondary.nodeAffinityPreset.values`                         | MariaDB secondary node label values to match. Ignored if `secondary.affinity` is set.                                 | `[]`                |
+| `secondary.affinity`                                          | Affinity for MariaDB secondary pods assignment                                                                        | `{}`                |
+| `secondary.nodeSelector`                                      | Node labels for MariaDB secondary pods assignment                                                                     | `{}`                |
+| `secondary.tolerations`                                       | Tolerations for MariaDB secondary pods assignment                                                                     | `[]`                |
+| `secondary.topologySpreadConstraints`                         | Topology Spread Constraints for MariaDB secondary pods assignment                                                     | `[]`                |
+| `secondary.priorityClassName`                                 | Priority class for MariaDB secondary pods assignment                                                                  | `""`                |
+| `secondary.runtimeClassName`                                  | Runtime Class for MariaDB secondary pods                                                                              | `""`                |
+| `secondary.schedulerName`                                     | Name of the k8s scheduler (other than default)                                                                        | `""`                |
+| `secondary.podManagementPolicy`                               | podManagementPolicy to manage scaling operation of MariaDB secondary pods                                             | `""`                |
+| `secondary.podSecurityContext.enabled`                        | Enable security context for MariaDB secondary pods                                                                    | `true`              |
+| `secondary.podSecurityContext.fsGroupChangePolicy`            | Set filesystem group change policy                                                                                    | `Always`            |
+| `secondary.podSecurityContext.sysctls`                        | Set kernel settings using the sysctl interface                                                                        | `[]`                |
+| `secondary.podSecurityContext.supplementalGroups`             | Set filesystem extra groups                                                                                           | `[]`                |
+| `secondary.podSecurityContext.fsGroup`                        | Group ID for the mounted volumes' filesystem                                                                          | `1001`              |
+| `secondary.containerSecurityContext.enabled`                  | MariaDB secondary container securityContext                                                                           | `true`              |
+| `secondary.containerSecurityContext.seLinuxOptions`           | Set SELinux options in container                                                                                      | `nil`               |
+| `secondary.containerSecurityContext.runAsUser`                | User ID for the MariaDB secondary container                                                                           | `1001`              |
+| `secondary.containerSecurityContext.runAsNonRoot`             | Set secondary container's Security Context runAsNonRoot                                                               | `true`              |
+| `secondary.containerSecurityContext.privileged`               | Set secondary container's Security Context privileged                                                                 | `false`             |
+| `secondary.containerSecurityContext.allowPrivilegeEscalation` | Set secondary container's Security Context allowPrivilegeEscalation                                                   | `false`             |
+| `secondary.containerSecurityContext.capabilities.drop`        | List of capabilities to be dropped                                                                                    | `["ALL"]`           |
+| `secondary.containerSecurityContext.seccompProfile.type`      | Set container's Security Context seccomp profile                                                                      | `RuntimeDefault`    |
+| `secondary.resources.limits`                                  | The resources limits for MariaDB secondary containers                                                                 | `{}`                |
+| `secondary.resources.requests`                                | The requested resources for MariaDB secondary containers                                                              | `{}`                |
+| `secondary.startupProbe.enabled`                              | Enable startupProbe                                                                                                   | `false`             |
+| `secondary.startupProbe.initialDelaySeconds`                  | Initial delay seconds for startupProbe                                                                                | `120`               |
+| `secondary.startupProbe.periodSeconds`                        | Period seconds for startupProbe                                                                                       | `15`                |
+| `secondary.startupProbe.timeoutSeconds`                       | Timeout seconds for startupProbe                                                                                      | `5`                 |
+| `secondary.startupProbe.failureThreshold`                     | Failure threshold for startupProbe                                                                                    | `10`                |
+| `secondary.startupProbe.successThreshold`                     | Success threshold for startupProbe                                                                                    | `1`                 |
+| `secondary.livenessProbe.enabled`                             | Enable livenessProbe                                                                                                  | `true`              |
+| `secondary.livenessProbe.initialDelaySeconds`                 | Initial delay seconds for livenessProbe                                                                               | `120`               |
+| `secondary.livenessProbe.periodSeconds`                       | Period seconds for livenessProbe                                                                                      | `10`                |
+| `secondary.livenessProbe.timeoutSeconds`                      | Timeout seconds for livenessProbe                                                                                     | `1`                 |
+| `secondary.livenessProbe.failureThreshold`                    | Failure threshold for livenessProbe                                                                                   | `3`                 |
+| `secondary.livenessProbe.successThreshold`                    | Success threshold for livenessProbe                                                                                   | `1`                 |
+| `secondary.readinessProbe.enabled`                            | Enable readinessProbe                                                                                                 | `true`              |
+| `secondary.readinessProbe.initialDelaySeconds`                | Initial delay seconds for readinessProbe                                                                              | `30`                |
+| `secondary.readinessProbe.periodSeconds`                      | Period seconds for readinessProbe                                                                                     | `10`                |
+| `secondary.readinessProbe.timeoutSeconds`                     | Timeout seconds for readinessProbe                                                                                    | `1`                 |
+| `secondary.readinessProbe.failureThreshold`                   | Failure threshold for readinessProbe                                                                                  | `3`                 |
+| `secondary.readinessProbe.successThreshold`                   | Success threshold for readinessProbe                                                                                  | `1`                 |
+| `secondary.customStartupProbe`                                | Override default startup probe for MariaDB secondary containers                                                       | `{}`                |
+| `secondary.customLivenessProbe`                               | Override default liveness probe for MariaDB secondary containers                                                      | `{}`                |
+| `secondary.customReadinessProbe`                              | Override default readiness probe for MariaDB secondary containers                                                     | `{}`                |
+| `secondary.startupWaitOptions`                                | Override default builtin startup wait check options for MariaDB secondary containers                                  | `{}`                |
+| `secondary.extraFlags`                                        | MariaDB secondary additional command line flags                                                                       | `""`                |
+| `secondary.extraEnvVars`                                      | Extra environment variables to be set on MariaDB secondary containers                                                 | `[]`                |
+| `secondary.extraEnvVarsCM`                                    | Name of existing ConfigMap containing extra env vars for MariaDB secondary containers                                 | `""`                |
+| `secondary.extraEnvVarsSecret`                                | Name of existing Secret containing extra env vars for MariaDB secondary containers                                    | `""`                |
+| `secondary.persistence.enabled`                               | Enable persistence on MariaDB secondary replicas using a `PersistentVolumeClaim`                                      | `true`              |
+| `secondary.persistence.subPath`                               | Subdirectory of the volume to mount at                                                                                | `""`                |
+| `secondary.persistence.storageClass`                          | MariaDB secondary persistent volume storage Class                                                                     | `""`                |
+| `secondary.persistence.labels`                                | Labels for the PVC                                                                                                    | `{}`                |
+| `secondary.persistence.annotations`                           | MariaDB secondary persistent volume claim annotations                                                                 | `{}`                |
+| `secondary.persistence.accessModes`                           | MariaDB secondary persistent volume access Modes                                                                      | `["ReadWriteOnce"]` |
+| `secondary.persistence.size`                                  | MariaDB secondary persistent volume size                                                                              | `8Gi`               |
+| `secondary.persistence.selector`                              | Selector to match an existing Persistent Volume                                                                       | `{}`                |
+| `secondary.extraVolumes`                                      | Optionally specify extra list of additional volumes to the MariaDB secondary pod(s)                                   | `[]`                |
+| `secondary.extraVolumeMounts`                                 | Optionally specify extra list of additional volumeMounts for the MariaDB secondary container(s)                       | `[]`                |
+| `secondary.initContainers`                                    | Add additional init containers for the MariaDB secondary pod(s)                                                       | `[]`                |
+| `secondary.sidecars`                                          | Add additional sidecar containers for the MariaDB secondary pod(s)                                                    | `[]`                |
+| `secondary.service.type`                                      | MariaDB secondary Kubernetes service type                                                                             | `ClusterIP`         |
+| `secondary.service.ports.mysql`                               | MariaDB secondary Kubernetes service port for MariaDB                                                                 | `3306`              |
+| `secondary.service.ports.metrics`                             | MariaDB secondary Kubernetes service port for metrics                                                                 | `9104`              |
+| `secondary.service.nodePorts.mysql`                           | MariaDB secondary Kubernetes service node port                                                                        | `""`                |
+| `secondary.service.clusterIP`                                 | MariaDB secondary Kubernetes service clusterIP IP                                                                     | `""`                |
+| `secondary.service.loadBalancerIP`                            | MariaDB secondary loadBalancerIP if service type is `LoadBalancer`                                                    | `""`                |
+| `secondary.service.externalTrafficPolicy`                     | Enable client source IP preservation                                                                                  | `Cluster`           |
+| `secondary.service.loadBalancerSourceRanges`                  | Address that are allowed when MariaDB secondary service is LoadBalancer                                               | `[]`                |
+| `secondary.service.extraPorts`                                | Extra ports to expose (normally used with the `sidecar` value)                                                        | `[]`                |
+| `secondary.service.annotations`                               | Provide any additional annotations which may be required                                                              | `{}`                |
+| `secondary.service.sessionAffinity`                           | Session Affinity for Kubernetes service, can be "None" or "ClientIP"                                                  | `None`              |
+| `secondary.service.sessionAffinityConfig`                     | Additional settings for the sessionAffinity                                                                           | `{}`                |
+| `secondary.pdb.create`                                        | Enable/disable a Pod Disruption Budget creation for MariaDB secondary pods                                            | `false`             |
+| `secondary.pdb.minAvailable`                                  | Minimum number/percentage of MariaDB secondary pods that should remain scheduled                                      | `1`                 |
+| `secondary.pdb.maxUnavailable`                                | Maximum number/percentage of MariaDB secondary pods that may be made unavailable                                      | `""`                |
+| `secondary.revisionHistoryLimit`                              | Maximum number of revisions that will be maintained in the StatefulSet                                                | `10`                |
 
-### Backup parameters
+### RBAC parameters
 
-| Name                                                               | Description                                                                                                                           | Value                                                                                                                                                                                |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `backup.enabled`                                                   | Enable the logical dump of the database "regularly"                                                                                   | `false`                                                                                                                                                                              |
-| `backup.cronjob.schedule`                                          | Set the cronjob parameter schedule                                                                                                    | `@daily`                                                                                                                                                                             |
-| `backup.cronjob.timeZone`                                          | Set the cronjob parameter timeZone                                                                                                    | `""`                                                                                                                                                                                 |
-| `backup.cronjob.concurrencyPolicy`                                 | Set the cronjob parameter concurrencyPolicy                                                                                           | `Allow`                                                                                                                                                                              |
-| `backup.cronjob.failedJobsHistoryLimit`                            | Set the cronjob parameter failedJobsHistoryLimit                                                                                      | `1`                                                                                                                                                                                  |
-| `backup.cronjob.successfulJobsHistoryLimit`                        | Set the cronjob parameter successfulJobsHistoryLimit                                                                                  | `3`                                                                                                                                                                                  |
-| `backup.cronjob.startingDeadlineSeconds`                           | Set the cronjob parameter startingDeadlineSeconds                                                                                     | `""`                                                                                                                                                                                 |
-| `backup.cronjob.ttlSecondsAfterFinished`                           | Set the cronjob parameter ttlSecondsAfterFinished                                                                                     | `""`                                                                                                                                                                                 |
-| `backup.cronjob.restartPolicy`                                     | Set the cronjob parameter restartPolicy                                                                                               | `OnFailure`                                                                                                                                                                          |
-| `backup.cronjob.podSecurityContext.enabled`                        | Enable PodSecurityContext for CronJob/Backup                                                                                          | `true`                                                                                                                                                                               |
-| `backup.cronjob.podSecurityContext.fsGroupChangePolicy`            | Set filesystem group change policy                                                                                                    | `Always`                                                                                                                                                                             |
-| `backup.cronjob.podSecurityContext.sysctls`                        | Set kernel settings using the sysctl interface                                                                                        | `[]`                                                                                                                                                                                 |
-| `backup.cronjob.podSecurityContext.supplementalGroups`             | Set filesystem extra groups                                                                                                           | `[]`                                                                                                                                                                                 |
-| `backup.cronjob.podSecurityContext.fsGroup`                        | Group ID for the CronJob                                                                                                              | `1001`                                                                                                                                                                               |
-| `backup.cronjob.containerSecurityContext.enabled`                  | Enabled containers' Security Context                                                                                                  | `true`                                                                                                                                                                               |
-| `backup.cronjob.containerSecurityContext.seLinuxOptions`           | Set SELinux options in container                                                                                                      | `nil`                                                                                                                                                                                |
-| `backup.cronjob.containerSecurityContext.runAsUser`                | Set containers' Security Context runAsUser                                                                                            | `1001`                                                                                                                                                                               |
-| `backup.cronjob.containerSecurityContext.runAsNonRoot`             | Set container's Security Context runAsNonRoot                                                                                         | `true`                                                                                                                                                                               |
-| `backup.cronjob.containerSecurityContext.privileged`               | Set container's Security Context privileged                                                                                           | `false`                                                                                                                                                                              |
-| `backup.cronjob.containerSecurityContext.readOnlyRootFilesystem`   | Set container's Security Context readOnlyRootFilesystem                                                                               | `false`                                                                                                                                                                              |
-| `backup.cronjob.containerSecurityContext.allowPrivilegeEscalation` | Set container's Security Context allowPrivilegeEscalation                                                                             | `false`                                                                                                                                                                              |
-| `backup.cronjob.containerSecurityContext.capabilities.drop`        | List of capabilities to be dropped                                                                                                    | `["ALL"]`                                                                                                                                                                            |
-| `backup.cronjob.containerSecurityContext.seccompProfile.type`      | Set container's Security Context seccomp profile                                                                                      | `RuntimeDefault`                                                                                                                                                                     |
-| `backup.cronjob.command`                                           | Set backup container's command to run                                                                                                 | `["/bin/sh","-c","pg_dumpall --clean --if-exists --load-via-partition-root --quote-all-identifiers --no-password --file=${PGDUMP_DIR}/pg_dumpall-$(date '+%Y-%m-%d-%H-%M').pgdump"]` |
-| `backup.cronjob.labels`                                            | Set the cronjob labels                                                                                                                | `{}`                                                                                                                                                                                 |
-| `backup.cronjob.annotations`                                       | Set the cronjob annotations                                                                                                           | `{}`                                                                                                                                                                                 |
-| `backup.cronjob.nodeSelector`                                      | Node labels for PostgreSQL backup CronJob pod assignment                                                                              | `{}`                                                                                                                                                                                 |
-| `backup.cronjob.storage.existingClaim`                             | Provide an existing `PersistentVolumeClaim` (only when `architecture=standalone`)                                                     | `""`                                                                                                                                                                                 |
-| `backup.cronjob.storage.resourcePolicy`                            | Setting it to "keep" to avoid removing PVCs during a helm delete operation. Leaving it empty will delete PVCs after the chart deleted | `""`                                                                                                                                                                                 |
-| `backup.cronjob.storage.storageClass`                              | PVC Storage Class for the backup data volume                                                                                          | `""`                                                                                                                                                                                 |
-| `backup.cronjob.storage.accessModes`                               | PV Access Mode                                                                                                                        | `["ReadWriteOnce"]`                                                                                                                                                                  |
-| `backup.cronjob.storage.size`                                      | PVC Storage Request for the backup data volume                                                                                        | `8Gi`                                                                                                                                                                                |
-| `backup.cronjob.storage.annotations`                               | PVC annotations                                                                                                                       | `{}`                                                                                                                                                                                 |
-| `backup.cronjob.storage.mountPath`                                 | Path to mount the volume at                                                                                                           | `/backup/pgdump`                                                                                                                                                                     |
-| `backup.cronjob.storage.subPath`                                   | Subdirectory of the volume to mount at                                                                                                | `""`                                                                                                                                                                                 |
-| `backup.cronjob.storage.volumeClaimTemplates.selector`             | A label query over volumes to consider for binding (e.g. when using local volumes)                                                    | `{}`                                                                                                                                                                                 |
-
-### NetworkPolicy parameters
-
-| Name                                                                      | Description                                                                                                                                        | Value   |
-| ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `networkPolicy.enabled`                                                   | Enable network policies                                                                                                                            | `false` |
-| `networkPolicy.metrics.enabled`                                           | Enable network policies for metrics (prometheus)                                                                                                   | `false` |
-| `networkPolicy.metrics.namespaceSelector`                                 | Monitoring namespace selector labels. These labels will be used to identify the prometheus' namespace.                                             | `{}`    |
-| `networkPolicy.metrics.podSelector`                                       | Monitoring pod selector labels. These labels will be used to identify the Prometheus pods.                                                         | `{}`    |
-| `networkPolicy.ingressRules.primaryAccessOnlyFrom.enabled`                | Enable ingress rule that makes PostgreSQL primary node only accessible from a particular origin.                                                   | `false` |
-| `networkPolicy.ingressRules.primaryAccessOnlyFrom.namespaceSelector`      | Namespace selector label that is allowed to access the PostgreSQL primary node. This label will be used to identified the allowed namespace(s).    | `{}`    |
-| `networkPolicy.ingressRules.primaryAccessOnlyFrom.podSelector`            | Pods selector label that is allowed to access the PostgreSQL primary node. This label will be used to identified the allowed pod(s).               | `{}`    |
-| `networkPolicy.ingressRules.primaryAccessOnlyFrom.customRules`            | Custom network policy for the PostgreSQL primary node.                                                                                             | `[]`    |
-| `networkPolicy.ingressRules.readReplicasAccessOnlyFrom.enabled`           | Enable ingress rule that makes PostgreSQL read-only nodes only accessible from a particular origin.                                                | `false` |
-| `networkPolicy.ingressRules.readReplicasAccessOnlyFrom.namespaceSelector` | Namespace selector label that is allowed to access the PostgreSQL read-only nodes. This label will be used to identified the allowed namespace(s). | `{}`    |
-| `networkPolicy.ingressRules.readReplicasAccessOnlyFrom.podSelector`       | Pods selector label that is allowed to access the PostgreSQL read-only nodes. This label will be used to identified the allowed pod(s).            | `{}`    |
-| `networkPolicy.ingressRules.readReplicasAccessOnlyFrom.customRules`       | Custom network policy for the PostgreSQL read-only nodes.                                                                                          | `[]`    |
-| `networkPolicy.egressRules.denyConnectionsToExternal`                     | Enable egress rule that denies outgoing traffic outside the cluster, except for DNS (port 53).                                                     | `false` |
-| `networkPolicy.egressRules.customRules`                                   | Custom network policy rule                                                                                                                         | `[]`    |
+| Name                                          | Description                                                    | Value   |
+| --------------------------------------------- | -------------------------------------------------------------- | ------- |
+| `serviceAccount.create`                       | Enable the creation of a ServiceAccount for MariaDB pods       | `true`  |
+| `serviceAccount.name`                         | Name of the created ServiceAccount                             | `""`    |
+| `serviceAccount.annotations`                  | Annotations for MariaDB Service Account                        | `{}`    |
+| `serviceAccount.automountServiceAccountToken` | Automount service account token for the server service account | `false` |
+| `rbac.create`                                 | Whether to create and use RBAC resources or not                | `false` |
 
 ### Volume Permissions parameters
 
-| Name                                                             | Description                                                                                                                       | Value                      |
-| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| `volumePermissions.enabled`                                      | Enable init container that changes the owner and group of the persistent volume                                                   | `false`                    |
-| `volumePermissions.image.registry`                               | Init container volume-permissions image registry                                                                                  | `REGISTRY_NAME`            |
-| `volumePermissions.image.repository`                             | Init container volume-permissions image repository                                                                                | `REPOSITORY_NAME/os-shell` |
-| `volumePermissions.image.digest`                                 | Init container volume-permissions image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag | `""`                       |
-| `volumePermissions.image.pullPolicy`                             | Init container volume-permissions image pull policy                                                                               | `IfNotPresent`             |
-| `volumePermissions.image.pullSecrets`                            | Init container volume-permissions image pull secrets                                                                              | `[]`                       |
-| `volumePermissions.resources.limits`                             | Init container volume-permissions resource limits                                                                                 | `{}`                       |
-| `volumePermissions.resources.requests`                           | Init container volume-permissions resource requests                                                                               | `{}`                       |
-| `volumePermissions.containerSecurityContext.seLinuxOptions`      | Set SELinux options in container                                                                                                  | `nil`                      |
-| `volumePermissions.containerSecurityContext.runAsUser`           | User ID for the init container                                                                                                    | `0`                        |
-| `volumePermissions.containerSecurityContext.runAsGroup`          | Group ID for the init container                                                                                                   | `0`                        |
-| `volumePermissions.containerSecurityContext.runAsNonRoot`        | runAsNonRoot for the init container                                                                                               | `false`                    |
-| `volumePermissions.containerSecurityContext.seccompProfile.type` | seccompProfile.type for the init container                                                                                        | `RuntimeDefault`           |
+| Name                                   | Description                                                                                                                       | Value                      |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| `volumePermissions.enabled`            | Enable init container that changes the owner and group of the persistent volume(s) mountpoint to `runAsUser:fsGroup`              | `false`                    |
+| `volumePermissions.image.registry`     | Init container volume-permissions image registry                                                                                  | `REGISTRY_NAME`            |
+| `volumePermissions.image.repository`   | Init container volume-permissions image repository                                                                                | `REPOSITORY_NAME/os-shell` |
+| `volumePermissions.image.digest`       | Init container volume-permissions image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag | `""`                       |
+| `volumePermissions.image.pullPolicy`   | Init container volume-permissions image pull policy                                                                               | `IfNotPresent`             |
+| `volumePermissions.image.pullSecrets`  | Specify docker-registry secret names as an array                                                                                  | `[]`                       |
+| `volumePermissions.resources.limits`   | Init container volume-permissions resource limits                                                                                 | `{}`                       |
+| `volumePermissions.resources.requests` | Init container volume-permissions resource requests                                                                               | `{}`                       |
 
-### Other Parameters
+### Metrics parameters
 
-| Name                                          | Description                                                                                                                                 | Value   |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `serviceBindings.enabled`                     | Create secret for service binding (Experimental)                                                                                            | `false` |
-| `serviceAccount.create`                       | Enable creation of ServiceAccount for PostgreSQL pod                                                                                        | `true`  |
-| `serviceAccount.name`                         | The name of the ServiceAccount to use.                                                                                                      | `""`    |
-| `serviceAccount.automountServiceAccountToken` | Allows auto mount of ServiceAccountToken on the serviceAccount created                                                                      | `false` |
-| `serviceAccount.annotations`                  | Additional custom annotations for the ServiceAccount                                                                                        | `{}`    |
-| `rbac.create`                                 | Create Role and RoleBinding (required for PSP to work)                                                                                      | `false` |
-| `rbac.rules`                                  | Custom RBAC rules to set                                                                                                                    | `[]`    |
-| `psp.create`                                  | Whether to create a PodSecurityPolicy. WARNING: PodSecurityPolicy is deprecated in Kubernetes v1.21 or later, unavailable in v1.25 or later | `false` |
+| Name                                                        | Description                                                                                                                               | Value                             |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| `metrics.enabled`                                           | Start a side-car prometheus exporter                                                                                                      | `false`                           |
+| `metrics.image.registry`                                    | Exporter image registry                                                                                                                   | `REGISTRY_NAME`                   |
+| `metrics.image.repository`                                  | Exporter image repository                                                                                                                 | `REPOSITORY_NAME/mysqld-exporter` |
+| `metrics.image.digest`                                      | Exporter image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag                                  | `""`                              |
+| `metrics.image.pullPolicy`                                  | Exporter image pull policy                                                                                                                | `IfNotPresent`                    |
+| `metrics.image.pullSecrets`                                 | Specify docker-registry secret names as an array                                                                                          | `[]`                              |
+| `metrics.annotations`                                       | Annotations for the Exporter pod                                                                                                          | `{}`                              |
+| `metrics.extraArgs`                                         | Extra args to be passed to mysqld_exporter                                                                                                | `{}`                              |
+| `metrics.extraVolumeMounts`                                 | Optionally specify extra list of additional volumeMounts for the MariaDB metrics container(s)                                             | `{}`                              |
+| `metrics.containerSecurityContext.enabled`                  | Enable security context for MariaDB metrics container                                                                                     | `false`                           |
+| `metrics.containerSecurityContext.seLinuxOptions`           | Set SELinux options in container                                                                                                          | `nil`                             |
+| `metrics.containerSecurityContext.runAsUser`                | User ID for the MariaDB metrics container                                                                                                 | `1001`                            |
+| `metrics.containerSecurityContext.runAsNonRoot`             | Set metrics container's Security Context runAsNonRoot                                                                                     | `true`                            |
+| `metrics.containerSecurityContext.privileged`               | Set metrics container's Security Context privileged                                                                                       | `false`                           |
+| `metrics.containerSecurityContext.allowPrivilegeEscalation` | Set metrics container's Security Context allowPrivilegeEscalation                                                                         | `false`                           |
+| `metrics.containerSecurityContext.capabilities.drop`        | List of capabilities to be dropped                                                                                                        | `["ALL"]`                         |
+| `metrics.containerSecurityContext.seccompProfile.type`      | Set container's Security Context seccomp profile                                                                                          | `RuntimeDefault`                  |
+| `metrics.resources.limits`                                  | The resources limits for MariaDB prometheus exporter containers                                                                           | `{}`                              |
+| `metrics.resources.requests`                                | The requested resources for MariaDB prometheus exporter containers                                                                        | `{}`                              |
+| `metrics.livenessProbe.enabled`                             | Enable livenessProbe                                                                                                                      | `true`                            |
+| `metrics.livenessProbe.initialDelaySeconds`                 | Initial delay seconds for livenessProbe                                                                                                   | `120`                             |
+| `metrics.livenessProbe.periodSeconds`                       | Period seconds for livenessProbe                                                                                                          | `10`                              |
+| `metrics.livenessProbe.timeoutSeconds`                      | Timeout seconds for livenessProbe                                                                                                         | `1`                               |
+| `metrics.livenessProbe.failureThreshold`                    | Failure threshold for livenessProbe                                                                                                       | `3`                               |
+| `metrics.livenessProbe.successThreshold`                    | Success threshold for livenessProbe                                                                                                       | `1`                               |
+| `metrics.readinessProbe.enabled`                            | Enable readinessProbe                                                                                                                     | `true`                            |
+| `metrics.readinessProbe.initialDelaySeconds`                | Initial delay seconds for readinessProbe                                                                                                  | `30`                              |
+| `metrics.readinessProbe.periodSeconds`                      | Period seconds for readinessProbe                                                                                                         | `10`                              |
+| `metrics.readinessProbe.timeoutSeconds`                     | Timeout seconds for readinessProbe                                                                                                        | `1`                               |
+| `metrics.readinessProbe.failureThreshold`                   | Failure threshold for readinessProbe                                                                                                      | `3`                               |
+| `metrics.readinessProbe.successThreshold`                   | Success threshold for readinessProbe                                                                                                      | `1`                               |
+| `metrics.serviceMonitor.enabled`                            | Create ServiceMonitor Resource for scraping metrics using PrometheusOperator                                                              | `false`                           |
+| `metrics.serviceMonitor.namespace`                          | Namespace which Prometheus is running in                                                                                                  | `""`                              |
+| `metrics.serviceMonitor.jobLabel`                           | The name of the label on the target service to use as the job name in prometheus.                                                         | `""`                              |
+| `metrics.serviceMonitor.interval`                           | Interval at which metrics should be scraped                                                                                               | `30s`                             |
+| `metrics.serviceMonitor.scrapeTimeout`                      | Specify the timeout after which the scrape is ended                                                                                       | `""`                              |
+| `metrics.serviceMonitor.relabelings`                        | RelabelConfigs to apply to samples before scraping                                                                                        | `[]`                              |
+| `metrics.serviceMonitor.metricRelabelings`                  | MetricRelabelConfigs to apply to samples before ingestion                                                                                 | `[]`                              |
+| `metrics.serviceMonitor.honorLabels`                        | honorLabels chooses the metric's labels on collisions with target labels                                                                  | `false`                           |
+| `metrics.serviceMonitor.selector`                           | ServiceMonitor selector labels                                                                                                            | `{}`                              |
+| `metrics.serviceMonitor.labels`                             | Extra labels for the ServiceMonitor                                                                                                       | `{}`                              |
+| `metrics.prometheusRule.enabled`                            | if `true`, creates a Prometheus Operator PrometheusRule (also requires `metrics.enabled` to be `true` and `metrics.prometheusRule.rules`) | `false`                           |
+| `metrics.prometheusRule.namespace`                          | Namespace for the PrometheusRule Resource (defaults to the Release Namespace)                                                             | `""`                              |
+| `metrics.prometheusRule.additionalLabels`                   | Additional labels that can be used so PrometheusRule will be discovered by Prometheus                                                     | `{}`                              |
+| `metrics.prometheusRule.rules`                              | Prometheus Rule definitions                                                                                                               | `[]`                              |
 
-### Metrics Parameters
+### NetworkPolicy parameters
 
-| Name                                                        | Description                                                                                                | Value                               |
-| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `metrics.enabled`                                           | Start a prometheus exporter                                                                                | `false`                             |
-| `metrics.image.registry`                                    | PostgreSQL Prometheus Exporter image registry                                                              | `REGISTRY_NAME`                     |
-| `metrics.image.repository`                                  | PostgreSQL Prometheus Exporter image repository                                                            | `REPOSITORY_NAME/postgres-exporter` |
-| `metrics.image.digest`                                      | PostgreSQL image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag | `""`                                |
-| `metrics.image.pullPolicy`                                  | PostgreSQL Prometheus Exporter image pull policy                                                           | `IfNotPresent`                      |
-| `metrics.image.pullSecrets`                                 | Specify image pull secrets                                                                                 | `[]`                                |
-| `metrics.collectors`                                        | Control enabled collectors                                                                                 | `{}`                                |
-| `metrics.customMetrics`                                     | Define additional custom metrics                                                                           | `{}`                                |
-| `metrics.extraEnvVars`                                      | Extra environment variables to add to PostgreSQL Prometheus exporter                                       | `[]`                                |
-| `metrics.containerSecurityContext.enabled`                  | Enabled containers' Security Context                                                                       | `true`                              |
-| `metrics.containerSecurityContext.seLinuxOptions`           | Set SELinux options in container                                                                           | `nil`                               |
-| `metrics.containerSecurityContext.runAsUser`                | Set containers' Security Context runAsUser                                                                 | `1001`                              |
-| `metrics.containerSecurityContext.runAsNonRoot`             | Set container's Security Context runAsNonRoot                                                              | `true`                              |
-| `metrics.containerSecurityContext.privileged`               | Set container's Security Context privileged                                                                | `false`                             |
-| `metrics.containerSecurityContext.readOnlyRootFilesystem`   | Set container's Security Context readOnlyRootFilesystem                                                    | `false`                             |
-| `metrics.containerSecurityContext.allowPrivilegeEscalation` | Set container's Security Context allowPrivilegeEscalation                                                  | `false`                             |
-| `metrics.containerSecurityContext.capabilities.drop`        | List of capabilities to be dropped                                                                         | `["ALL"]`                           |
-| `metrics.containerSecurityContext.seccompProfile.type`      | Set container's Security Context seccomp profile                                                           | `RuntimeDefault`                    |
-| `metrics.livenessProbe.enabled`                             | Enable livenessProbe on PostgreSQL Prometheus exporter containers                                          | `true`                              |
-| `metrics.livenessProbe.initialDelaySeconds`                 | Initial delay seconds for livenessProbe                                                                    | `5`                                 |
-| `metrics.livenessProbe.periodSeconds`                       | Period seconds for livenessProbe                                                                           | `10`                                |
-| `metrics.livenessProbe.timeoutSeconds`                      | Timeout seconds for livenessProbe                                                                          | `5`                                 |
-| `metrics.livenessProbe.failureThreshold`                    | Failure threshold for livenessProbe                                                                        | `6`                                 |
-| `metrics.livenessProbe.successThreshold`                    | Success threshold for livenessProbe                                                                        | `1`                                 |
-| `metrics.readinessProbe.enabled`                            | Enable readinessProbe on PostgreSQL Prometheus exporter containers                                         | `true`                              |
-| `metrics.readinessProbe.initialDelaySeconds`                | Initial delay seconds for readinessProbe                                                                   | `5`                                 |
-| `metrics.readinessProbe.periodSeconds`                      | Period seconds for readinessProbe                                                                          | `10`                                |
-| `metrics.readinessProbe.timeoutSeconds`                     | Timeout seconds for readinessProbe                                                                         | `5`                                 |
-| `metrics.readinessProbe.failureThreshold`                   | Failure threshold for readinessProbe                                                                       | `6`                                 |
-| `metrics.readinessProbe.successThreshold`                   | Success threshold for readinessProbe                                                                       | `1`                                 |
-| `metrics.startupProbe.enabled`                              | Enable startupProbe on PostgreSQL Prometheus exporter containers                                           | `false`                             |
-| `metrics.startupProbe.initialDelaySeconds`                  | Initial delay seconds for startupProbe                                                                     | `10`                                |
-| `metrics.startupProbe.periodSeconds`                        | Period seconds for startupProbe                                                                            | `10`                                |
-| `metrics.startupProbe.timeoutSeconds`                       | Timeout seconds for startupProbe                                                                           | `1`                                 |
-| `metrics.startupProbe.failureThreshold`                     | Failure threshold for startupProbe                                                                         | `15`                                |
-| `metrics.startupProbe.successThreshold`                     | Success threshold for startupProbe                                                                         | `1`                                 |
-| `metrics.customLivenessProbe`                               | Custom livenessProbe that overrides the default one                                                        | `{}`                                |
-| `metrics.customReadinessProbe`                              | Custom readinessProbe that overrides the default one                                                       | `{}`                                |
-| `metrics.customStartupProbe`                                | Custom startupProbe that overrides the default one                                                         | `{}`                                |
-| `metrics.containerPorts.metrics`                            | PostgreSQL Prometheus exporter metrics container port                                                      | `9187`                              |
-| `metrics.resources.limits`                                  | The resources limits for the PostgreSQL Prometheus exporter container                                      | `{}`                                |
-| `metrics.resources.requests`                                | The requested resources for the PostgreSQL Prometheus exporter container                                   | `{}`                                |
-| `metrics.service.ports.metrics`                             | PostgreSQL Prometheus Exporter service port                                                                | `9187`                              |
-| `metrics.service.clusterIP`                                 | Static clusterIP or None for headless services                                                             | `""`                                |
-| `metrics.service.sessionAffinity`                           | Control where client requests go, to the same pod or round-robin                                           | `None`                              |
-| `metrics.service.annotations`                               | Annotations for Prometheus to auto-discover the metrics endpoint                                           | `{}`                                |
-| `metrics.serviceMonitor.enabled`                            | Create ServiceMonitor Resource for scraping metrics using Prometheus Operator                              | `false`                             |
-| `metrics.serviceMonitor.namespace`                          | Namespace for the ServiceMonitor Resource (defaults to the Release Namespace)                              | `""`                                |
-| `metrics.serviceMonitor.interval`                           | Interval at which metrics should be scraped.                                                               | `""`                                |
-| `metrics.serviceMonitor.scrapeTimeout`                      | Timeout after which the scrape is ended                                                                    | `""`                                |
-| `metrics.serviceMonitor.labels`                             | Additional labels that can be used so ServiceMonitor will be discovered by Prometheus                      | `{}`                                |
-| `metrics.serviceMonitor.selector`                           | Prometheus instance selector labels                                                                        | `{}`                                |
-| `metrics.serviceMonitor.relabelings`                        | RelabelConfigs to apply to samples before scraping                                                         | `[]`                                |
-| `metrics.serviceMonitor.metricRelabelings`                  | MetricRelabelConfigs to apply to samples before ingestion                                                  | `[]`                                |
-| `metrics.serviceMonitor.honorLabels`                        | Specify honorLabels parameter to add the scrape endpoint                                                   | `false`                             |
-| `metrics.serviceMonitor.jobLabel`                           | The name of the label on the target service to use as the job name in prometheus.                          | `""`                                |
-| `metrics.prometheusRule.enabled`                            | Create a PrometheusRule for Prometheus Operator                                                            | `false`                             |
-| `metrics.prometheusRule.namespace`                          | Namespace for the PrometheusRule Resource (defaults to the Release Namespace)                              | `""`                                |
-| `metrics.prometheusRule.labels`                             | Additional labels that can be used so PrometheusRule will be discovered by Prometheus                      | `{}`                                |
-| `metrics.prometheusRule.rules`                              | PrometheusRule definitions                                                                                 | `[]`                                |
+| Name                                                                   | Description                                                                                                                            | Value   |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `networkPolicy.enabled`                                                | Enable network policies                                                                                                                | `false` |
+| `networkPolicy.metrics.enabled`                                        | Enable network policy for metrics (prometheus)                                                                                         | `false` |
+| `networkPolicy.metrics.namespaceSelector`                              | Monitoring namespace selector labels. These labels will be used to identify the prometheus' namespace.                                 | `{}`    |
+| `networkPolicy.metrics.podSelector`                                    | Monitoring pod selector labels. These labels will be used to identify the Prometheus pods.                                             | `{}`    |
+| `networkPolicy.ingressRules.primaryAccessOnlyFrom.enabled`             | Enable ingress rule that makes primary mariadb nodes only accessible from a particular origin.                                         | `false` |
+| `networkPolicy.ingressRules.primaryAccessOnlyFrom.namespaceSelector`   | Namespace selector label that is allowed to access the primary node. This label will be used to identified the allowed namespace(s).   | `{}`    |
+| `networkPolicy.ingressRules.primaryAccessOnlyFrom.podSelector`         | Pods selector label that is allowed to access the primary node. This label will be used to identified the allowed pod(s).              | `{}`    |
+| `networkPolicy.ingressRules.primaryAccessOnlyFrom.customRules`         | Custom network policy for the primary node.                                                                                            | `[]`    |
+| `networkPolicy.ingressRules.secondaryAccessOnlyFrom.enabled`           | Enable ingress rule that makes primary mariadb nodes only accessible from a particular origin.                                         | `false` |
+| `networkPolicy.ingressRules.secondaryAccessOnlyFrom.namespaceSelector` | Namespace selector label that is allowed to acces the secondary nodes. This label will be used to identified the allowed namespace(s). | `{}`    |
+| `networkPolicy.ingressRules.secondaryAccessOnlyFrom.podSelector`       | Pods selector label that is allowed to access the secondary nodes. This label will be used to identified the allowed pod(s).           | `{}`    |
+| `networkPolicy.ingressRules.secondaryAccessOnlyFrom.customRules`       | Custom network policy for the secondary nodes.                                                                                         | `[]`    |
+| `networkPolicy.egressRules.denyConnectionsToExternal`                  | Enable egress rule that denies outgoing traffic outside the cluster, except for DNS (port 53).                                         | `false` |
+| `networkPolicy.egressRules.customRules`                                | Custom network policy rule                                                                                                             | `{}`    |
+
+The above parameters map to the env variables defined in [bitnami/mariadb](https://github.com/bitnami/containers/tree/main/bitnami/mariadb). For more information please refer to the [bitnami/mariadb](https://github.com/bitnami/containers/tree/main/bitnami/mariadb) image documentation.
 
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example,
 
 ```console
 helm install my-release \
-    --set auth.postgresPassword=secretpassword
-    oci://REGISTRY_NAME/REPOSITORY_NAME/postgresql
+  --set auth.rootPassword=secretpassword,auth.database=app_database \
+    oci://REGISTRY_NAME/REPOSITORY_NAME/mariadb
 ```
 
 > Note: You need to substitute the placeholders `REGISTRY_NAME` and `REPOSITORY_NAME` with a reference to your Helm chart registry and repository. For example, in the case of Bitnami, you need to use `REGISTRY_NAME=registry-1.docker.io` and `REPOSITORY_NAME=bitnamicharts`.
 
-The above command sets the PostgreSQL `postgres` account password to `secretpassword`.
+The above command sets the MariaDB `root` account password to `secretpassword`. Additionally it creates a database named `my_database`.
 
 > NOTE: Once this chart is deployed, it is not possible to change the application's access credentials, such as usernames or passwords, using Helm. To change these application credentials after deployment, delete any persistent volumes (PVs) used by the chart and re-deploy it, or use the application's built-in administrative tools if available.
-> **Warning** Setting a password will be ignored on new installation in case when previous PostgreSQL release was deleted through the helm command. In that case, old PVC will have an old password, and setting it through helm won't take effect. Deleting persistent volumes (PVs) will solve the issue. Refer to [issue 2061](https://github.com/bitnami/charts/issues/2061) for more details
 
 Alternatively, a YAML file that specifies the values for the parameters can be provided while installing the chart. For example,
 
 ```console
-helm install my-release -f values.yaml oci://REGISTRY_NAME/REPOSITORY_NAME/postgresql
+helm install my-release -f values.yaml oci://REGISTRY_NAME/REPOSITORY_NAME/mariadb
 ```
 
 > Note: You need to substitute the placeholders `REGISTRY_NAME` and `REPOSITORY_NAME` with a reference to your Helm chart registry and repository. For example, in the case of Bitnami, you need to use `REGISTRY_NAME=registry-1.docker.io` and `REPOSITORY_NAME=bitnamicharts`.
-> **Tip**: You can use the default [values.yaml](https://github.com/bitnami/charts/tree/main/bitnami/postgresql/values.yaml)
+> **Tip**: You can use the default [values.yaml](https://github.com/bitnami/charts/tree/main/bitnami/mariadb/values.yaml)
 
 ## Configuration and installation details
 
@@ -582,218 +431,87 @@ It is strongly recommended to use immutable tags in a production environment. Th
 
 Bitnami will release a new chart updating its containers if a new version of the main container, significant changes, or critical vulnerabilities exist.
 
-### Customizing primary and read replica services in a replicated configuration
+### Change MariaDB version
 
-At the top level, there is a service object which defines the services for both primary and readReplicas. For deeper customization, there are service objects for both the primary and read types individually. This allows you to override the values in the top level service object so that the primary and read can be of different service types and with different clusterIPs / nodePorts. Also in the case you want the primary and read to be of type nodePort, you will need to set the nodePorts to different values to prevent a collision. The values that are deeper in the primary.service or readReplicas.service objects will take precedence over the top level service object.
-
-### Use a different PostgreSQL version
-
-To modify the application version used in this chart, specify a different version of the image using the `image.tag` parameter and/or a different repository using the `image.repository` parameter.
-
-### LDAP
-
-LDAP support can be enabled in the chart by specifying the `ldap.` parameters while creating a release. The following parameters should be configured to properly enable the LDAP support in the chart.
-
-- **ldap.enabled**: Enable LDAP support. Defaults to `false`.
-- **ldap.uri**: LDAP URL beginning in the form `ldap[s]://<hostname>:<port>`. No defaults.
-- **ldap.base**: LDAP base DN. No defaults.
-- **ldap.binddn**: LDAP bind DN. No defaults.
-- **ldap.bindpw**: LDAP bind password. No defaults.
-- **ldap.bslookup**: LDAP base lookup. No defaults.
-- **ldap.nss_initgroups_ignoreusers**: LDAP ignored users. `root,nslcd`.
-- **ldap.scope**: LDAP search scope. No defaults.
-- **ldap.tls_reqcert**: LDAP TLS check on server certificates. No defaults.
-
-For example:
-
-```text
-ldap.enabled="true"
-ldap.uri="ldap://my_ldap_server"
-ldap.base="dc=example\,dc=org"
-ldap.binddn="cn=admin\,dc=example\,dc=org"
-ldap.bindpw="admin"
-ldap.bslookup="ou=group-ok\,dc=example\,dc=org"
-ldap.nss_initgroups_ignoreusers="root\,nslcd"
-ldap.scope="sub"
-ldap.tls_reqcert="demand"
-```
-
-Next, login to the PostgreSQL server using the `psql` client and add the PAM authenticated LDAP users.
-
-> Note: Parameters including commas must be escaped as shown in the above example.
-
-### postgresql.conf / pg_hba.conf files as configMap
-
-This helm chart also supports to customize the PostgreSQL configuration file. You can add additional PostgreSQL configuration parameters using the `primary.extendedConfiguration`/`readReplicas.extendedConfiguration` parameters as a string. Alternatively, to replace the entire default configuration use `primary.configuration`.
-
-You can also add a custom pg_hba.conf using the `primary.pgHbaConfiguration` parameter.
-
-In addition to these options, you can also set an external ConfigMap with all the configuration files. This is done by setting the `primary.existingConfigmap` parameter. Note that this will override the two previous options.
+To modify the MariaDB version used in this chart you can specify a [valid image tag](https://hub.docker.com/r/bitnami/mariadb/tags/) using the `image.tag` parameter. For example, `image.tag=X.Y.Z`. This approach is also applicable to other images like exporters.
 
 ### Initialize a fresh instance
 
-The [Bitnami PostgreSQL](https://github.com/bitnami/containers/tree/main/bitnami/postgresql) image allows you to use your custom scripts to initialize a fresh instance. In order to execute the scripts, you can specify custom scripts using the `primary.initdb.scripts` parameter as a string.
-
-In addition, you can also set an external ConfigMap with all the initialization scripts. This is done by setting the `primary.initdb.scriptsConfigMap` parameter. Note that this will override the two previous options. If your initialization scripts contain sensitive information such as credentials or passwords, you can use the `primary.initdb.scriptsSecret` parameter.
+The [Bitnami MariaDB](https://github.com/bitnami/containers/tree/main/bitnami/mariadb) image allows you to use your custom scripts to initialize a fresh instance. Custom scripts may be specified using the `initdbScripts` parameter. Alternatively, an external ConfigMap may be created with all the initialization scripts and the ConfigMap passed to the chart via the `initdbScriptsConfigMap` parameter. Note that this will override the `initdbScripts` parameter.
 
 The allowed extensions are `.sh`, `.sql` and `.sql.gz`.
 
-### Securing traffic using TLS
+These scripts are treated differently depending on their extension. While `.sh` scripts are executed on all the nodes, `.sql` and `.sql.gz` scripts are only executed on the primary nodes. This is because `.sh` scripts support conditional tests to identify the type of node they are running on, while such tests are not supported in `.sql` or `.sql.gz` files.
 
-TLS support can be enabled in the chart by specifying the `tls.` parameters while creating a release. The following parameters should be configured to properly enable the TLS support in the chart:
-
-- `tls.enabled`: Enable TLS support. Defaults to `false`
-- `tls.certificatesSecret`: Name of an existing secret that contains the certificates. No defaults.
-- `tls.certFilename`: Certificate filename. No defaults.
-- `tls.certKeyFilename`: Certificate key filename. No defaults.
-
-For example:
-
-- First, create the secret with the cetificates files:
-
-    ```console
-    kubectl create secret generic certificates-tls-secret --from-file=./cert.crt --from-file=./cert.key --from-file=./ca.crt
-    ```
-
-- Then, use the following parameters:
-
-    ```console
-    volumePermissions.enabled=true
-    tls.enabled=true
-    tls.certificatesSecret="certificates-tls-secret"
-    tls.certFilename="cert.crt"
-    tls.certKeyFilename="cert.key"
-    ```
-
-  > Note TLS and VolumePermissions: PostgreSQL requires certain permissions on sensitive files (such as certificate keys) to start up. Due to an on-going [issue](https://github.com/kubernetes/kubernetes/issues/57923) regarding kubernetes permissions and the use of `containerSecurityContext.runAsUser`, you must enable `volumePermissions` to ensure everything works as expected.
-
-### Sidecars
-
-If you need  additional containers to run within the same pod as PostgreSQL (e.g. an additional metrics or logging exporter), you can do so via the `sidecars` config parameter. Simply define your container according to the Kubernetes container spec.
+When using a `.sh` script, you may wish to perform a "one-time" action like creating a database. This can be achieved by adding a condition in the script to ensure that it is executed only on one node, as shown in the example below:
 
 ```yaml
-# For the PostgreSQL primary
-primary:
-  sidecars:
+initdbScripts:
+  my_init_script.sh: |
+    #!/bin/sh
+    if [[ $(hostname) == *primary* ]]; then
+      echo "Primary node"
+      mysql -P 3306 -uroot -prandompassword -e "create database new_database";
+    else
+      echo "No primary node"
+    fi
+```
+
+### Sidecars and Init Containers
+
+If additional containers are needed in the same pod as MariaDB (such as additional metrics or logging exporters), they can be defined using the `sidecars` parameter.
+
+```yaml
+sidecars:
+- name: your-image-name
+  image: your-image
+  imagePullPolicy: Always
+  ports:
+  - name: portname
+    containerPort: 1234
+```
+
+If these sidecars export extra ports, extra port definitions can be added using the `service.extraPorts` parameter (where available), as shown in the example below:
+
+```yaml
+service:
+  extraPorts:
+  - name: extraPort
+    port: 11311
+    targetPort: 11311
+```
+
+> NOTE: This Helm chart already includes sidecar containers for the Prometheus exporters (where applicable). These can be activated by adding the `--enable-metrics=true` parameter at deployment time. The `sidecars` parameter should therefore only be used for any extra sidecar containers.
+
+If additional init containers are needed in the same pod, they can be defined using the `initContainers` parameter. Here is an example:
+
+```yaml
+initContainers:
   - name: your-image-name
     image: your-image
     imagePullPolicy: Always
     ports:
-    - name: portname
-     containerPort: 1234
-# For the PostgreSQL replicas
-readReplicas:
-  sidecars:
-  - name: your-image-name
-    image: your-image
-    imagePullPolicy: Always
-    ports:
-    - name: portname
-     containerPort: 1234
+      - name: portname
+        containerPort: 1234
 ```
 
-### Metrics
+Learn more about [sidecar containers](https://kubernetes.io/docs/concepts/workloads/pods/) and [init containers](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/).
 
-The chart optionally can start a metrics exporter for [prometheus](https://prometheus.io). The metrics endpoint (port 9187) is not exposed and it is expected that the metrics are collected from inside the k8s cluster using something similar as the described in the [example Prometheus scrape configuration](https://github.com/prometheus/prometheus/blob/master/documentation/examples/prometheus-kubernetes.yml).
+## Persistence
 
-The exporter allows to create custom metrics from additional SQL queries. See the Chart's `values.yaml` for an example and consult the [exporters documentation](https://github.com/wrouesnel/postgres_exporter#adding-new-metrics-via-a-config-file) for more details.
+The [Bitnami MariaDB](https://github.com/bitnami/containers/tree/main/bitnami/mariadb) image stores the MariaDB data and configurations at the `/bitnami/mariadb` path of the container.
 
-### Use of global variables
+The chart mounts a [Persistent Volume](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) volume at this location. The volume is created using dynamic volume provisioning, by default. An existing PersistentVolumeClaim can also be defined.
 
-In more complex scenarios, we may have the following tree of dependencies
+If you encounter errors when working with persistent volumes, refer to our [troubleshooting guide for persistent volumes](https://docs.bitnami.com/kubernetes/faq/troubleshooting/troubleshooting-persistence-volumes/).
 
-```text
-                     +--------------+
-                     |              |
-        +------------+   Chart 1    +-----------+
-        |            |              |           |
-        |            --------+------+           |
-        |                    |                  |
-        |                    |                  |
-        |                    |                  |
-        |                    |                  |
-        v                    v                  v
-+-------+------+    +--------+------+  +--------+------+
-|              |    |               |  |               |
-|  PostgreSQL  |    |  Sub-chart 1  |  |  Sub-chart 2  |
-|              |    |               |  |               |
-+--------------+    +---------------+  +---------------+
-```
+### Adjust permissions of persistent volume mountpoint
 
-The three charts below depend on the parent chart Chart 1. However, subcharts 1 and 2 may need to connect to PostgreSQL as well. In order to do so, subcharts 1 and 2 need to know the PostgreSQL credentials, so one option for deploying could be deploy Chart 1 with the following parameters:
+As the image run as non-root by default, it is necessary to adjust the ownership of the persistent volume so that the container can write data into it.
 
-```text
-postgresql.auth.username=testuser
-subchart1.postgresql.auth.username=testuser
-subchart2.postgresql.auth.username=testuser
-postgresql.auth.password=testpass
-subchart1.postgresql.auth.password=testpass
-subchart2.postgresql.auth.password=testpass
-postgresql.auth.database=testdb
-subchart1.postgresql.auth.database=testdb
-subchart2.postgresql.auth.database=testdb
-```
+By default, the chart is configured to use Kubernetes Security Context to automatically change the ownership of the volume. However, this feature does not work in all Kubernetes distributions.
 
-If the number of dependent sub-charts increases, installing the chart with parameters can become increasingly difficult. An alternative would be to set the credentials using global variables as follows:
-
-```text
-global.postgresql.auth.username=testuser
-global.postgresql.auth.password=testpass
-global.postgresql.auth.database=testdb
-```
-
-This way, the credentials will be available in all of the subcharts.
-
-### Persistence
-
-The [Bitnami PostgreSQL](https://github.com/bitnami/containers/tree/main/bitnami/postgresql) image stores the PostgreSQL data and configurations at the `/bitnami/postgresql` path of the container.
-
-Persistent Volume Claims are used to keep the data across deployments. This is known to work in GCE, AWS, and minikube.
-See the [Parameters](#parameters) section to configure the PVC or to disable persistence.
-
-If you already have data in it, you will fail to sync to standby nodes for all commits, details can refer to the [code present in the container repository](https://github.com/bitnami/containers/tree/main/bitnami/postgresql). If you need to use those data, please covert them to sql and import after `helm install` finished.
-
-### Backup and restore PostgreSQL deployments
-
-To back up and restore Bitnami PostgreSQL Helm chart deployments on Kubernetes, you need to back up the persistent volumes from the source deployment and attach them to a new deployment using [Velero](https://velero.io/), a Kubernetes backup/restore tool.
-
-These are the steps you will usually follow to back up and restore your PostgreSQL cluster data:
-
-- Install Velero on the source and destination clusters.
-- Use Velero to back up the PersistentVolumes (PVs) used by the deployment on the source cluster.
-- Use Velero to restore the backed-up PVs on the destination cluster.
-- Create a new deployment on the destination cluster with the same chart, deployment name, credentials and other parameters as the original. This new deployment will use the restored PVs and hence the original data.
-
-Refer to our detailed [tutorial on backing up and restoring PostgreSQL deployments on Kubernetes](https://docs.bitnami.com/tutorials/migrate-data-bitnami-velero/) for more information.
-
-### NetworkPolicy
-
-To enable network policy for PostgreSQL, install [a networking plugin that implements the Kubernetes NetworkPolicy spec](https://kubernetes.io/docs/tasks/administer-cluster/declare-network-policy#before-you-begin), and set `networkPolicy.enabled` to `true`.
-
-For Kubernetes v1.5 & v1.6, you must also turn on NetworkPolicy by setting the DefaultDeny namespace annotation. Note: this will enforce policy for _all_ pods in the namespace:
-
-```console
-kubectl annotate namespace default "net.beta.kubernetes.io/network-policy={\"ingress\":{\"isolation\":\"DefaultDeny\"}}"
-```
-
-With NetworkPolicy enabled, traffic will be limited to just port 5432.
-
-For more precise policy, set `networkPolicy.allowExternal=false`. This will only allow pods with the generated client label to connect to PostgreSQL.
-This label will be displayed in the output of a successful install.
-
-### Differences between Bitnami PostgreSQL image and [Docker Official](https://hub.docker.com/_/postgres) image
-
-- The Docker Official PostgreSQL image does not support replication. If you pass any replication environment variable, this would be ignored. The only environment variables supported by the Docker Official image are POSTGRES_USER, POSTGRES_DB, POSTGRES_PASSWORD, POSTGRES_INITDB_ARGS, POSTGRES_INITDB_WALDIR and PGDATA. All the remaining environment variables are specific to the Bitnami PostgreSQL image.
-- The Bitnami PostgreSQL image is non-root by default. This requires that you run the pod with `securityContext` and updates the permissions of the volume with an `initContainer`. A key benefit of this configuration is that the pod follows security best practices and is prepared to run on Kubernetes distributions with hard security constraints like OpenShift.
-- For OpenShift up to 4.10, let set the volume permissions, security context, runAsUser and fsGroup automatically by OpenShift and disable the predefined settings of the helm chart: primary.securityContext.enabled=false,primary.containerSecurityContext.enabled=false,volumePermissions.enabled=false,shmVolume.enabled=false
-- For OpenShift 4.11 and higher, let set OpenShift the runAsUser and fsGroup automatically. Configure the pod and container security context to restrictive defaults and disable the volume permissions setup: primary.
-    podSecurityContext.fsGroup=null,primary.podSecurityContext.seccompProfile.type=RuntimeDefault,primary.containerSecurityContext.runAsUser=null,primary.containerSecurityContext.allowPrivilegeEscalation=false,primary.containerSecurityContext.runAsNonRoot=true,primary.containerSecurityContext.seccompProfile.type=RuntimeDefault,primary.containerSecurityContext.capabilities.drop=['ALL'],volumePermissions.enabled=false,shmVolume.enabled=false
-
-### Setting Pod's affinity
-
-This chart allows you to set your custom affinity using the `XXX.affinity` parameter(s). Find more information about Pod's affinity in the [kubernetes documentation](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity).
-
-As an alternative, you can use of the preset configurations for pod affinity, pod anti-affinity, and node affinity available at the [bitnami/common](https://github.com/bitnami/charts/tree/main/bitnami/common#affinities) chart. To do so, set the `XXX.podAffinityPreset`, `XXX.podAntiAffinityPreset`, or `XXX.nodeAffinityPreset` parameters.
+As an alternative, this chart supports using an initContainer to change the ownership of the volume before mounting it in the final destination. You can enable this initContainer by setting `volumePermissions.enabled` to `true`.
 
 ## Troubleshooting
 
@@ -801,204 +519,103 @@ Find more information about how to deal with common errors related to Bitnami's 
 
 ## Upgrading
 
+It's necessary to set the `auth.rootPassword` parameter when upgrading for readiness/liveness probes to work properly. When you install this chart for the first time, some notes will be displayed providing the credentials you must use under the 'Administrator credentials' section. Please note down the password and run the command below to upgrade your chart:
+
+```console
+helm upgrade my-release oci://REGISTRY_NAME/REPOSITORY_NAME/mariadb --set auth.rootPassword=[ROOT_PASSWORD]
+```
+
+> Note: You need to substitute the placeholders `REGISTRY_NAME` and `REPOSITORY_NAME` with a reference to your Helm chart registry and repository. For example, in the case of Bitnami, you need to use `REGISTRY_NAME=registry-1.docker.io` and `REPOSITORY_NAME=bitnamicharts`.
+
+| Note: you need to substitute the placeholder _[ROOT_PASSWORD]_ with the value obtained in the installation notes.
+
 ### To 14.0.0
 
-This major version adapts the NetworkPolicy objects to the most recent Bitnami standards. Now there is a separate object for `primary` and for `readReplicas`, being located in their corresponding sections. It is also enabled by default in other to comply with the best security standards.
-
-Check the parameter section for the new value structure.
+This major release bumps the MariaDB version to 11.1. Follow the [upstream instructions](https://mariadb.com/kb/en/upgrading-between-minor-versions-on-linux/) for upgrading from MariaDB 11.0 to 11.1. No major issues are expected during the upgrade.
 
 ### To 13.0.0
 
-This major version changes the default PostgreSQL image from 15.x to 16.x. Follow the [official instructions](https://www.postgresql.org/docs/16/upgrading.html) to upgrade to 16.x.
-
-### To 12.0.0
-
-This major version changes the default PostgreSQL image from 14.x to 15.x. Follow the [official instructions](https://www.postgresql.org/docs/15/upgrading.html) to upgrade to 15.x.
+This major release bumps the MariaDB version to 11.0. Follow the [upstream instructions](https://mariadb.com/kb/en/upgrading-from-mariadb-10-11-to-mariadb-11-0/) for upgrading from MariaDB 10.11 to 11.0. No major issues are expected during the upgrade.
 
 ### To 11.0.0
 
-In this version the application version was bumped to _14.x_ series. Also, this major release renames several values in this chart and adds missing features, in order to be inline with the rest of assets in the Bitnami charts repository.
+This major release bumps default MariaDB branch to 10.6. Follow the [official instructions](https://mariadb.com/kb/en/upgrading-from-mariadb-105-to-mariadb-106/) from upgrading between 10.5 and 10.6.
 
-- _replication.enabled_ parameter is deprecated in favor of _architecture_ parameter that accepts two values: _standalone_ and _replication_.
-- _replication.singleService_ and _replication.uniqueServices_ parameters are deprecated. When using replication, each statefulset (primary and read-only) has its own headless service & service allowing to connect to read-only replicas through the service (round-robin) or individually.
-- _postgresqlPostgresPassword_, _postgresqlUsername_, _postgresqlPassword_, _postgresqlDatabase_, _replication.user_, _replication.password_, and _existingSecret_ parameters have been regrouped under the _auth_ map. The _auth_ map uses a new perspective to configure authentication, so please read carefully each sub-parameter description.
-- _extraEnv_ has been deprecated in favor of _primary.extraEnvVars_ and _readReplicas.extraEnvVars_.
-- _postgresqlConfiguration_, _pgHbaConfiguration_, _configurationConfigMap_, _postgresqlExtendedConf_, and _extendedConfConfigMap_ have been deprecated in favor of _primary.configuration_, _primary.pgHbaConfiguration_, _primary.existingConfigmap_, _primary.extendedConfiguration_, and _primary.existingExtendedConfigmap_.
-- _postgresqlInitdbArgs_, _postgresqlInitdbWalDir_, _initdbScripts_, _initdbScriptsConfigMap_, _initdbScriptsSecret_, _initdbUser_ and _initdbPassword_ have been regrouped under the _primary.initdb_ map.
-- _postgresqlMaxConnections_, _postgresqlPostgresConnectionLimit_, _postgresqlDbUserConnectionLimit_, _postgresqlTcpKeepalivesInterval_, _postgresqlTcpKeepalivesIdle_, _postgresqlTcpKeepalivesCount_, _postgresqlStatementTimeout_ and _postgresqlPghbaRemoveFilters_ parameters are deprecated. Use _XXX.extraEnvVars_ instead.
-- _primaryAsStandBy_ has been deprecated in favor of _primary.standby_.
-- _securityContext_ and _containerSecurityContext_ have been deprecated in favor of _primary.podSecurityContext_, _primary.containerSecurityContext_, _readReplicas.podSecurityContext_, and _readReplicas.containerSecurityContext_.
-- _livenessProbe_ and _readinessProbe_ maps have been deprecated in favor of _primary.livenessProbe_, _primary.readinessProbe_, _readReplicas.livenessProbe_ and _readReplicas.readinessProbe_ maps.
-- _persistence_ map has been deprecated in favor of _primary.persistence_ and _readReplicas.persistence_ maps.
-- _networkPolicy_ map has been completely refactored.
-- _service_ map has been deprecated in favor of _primary.service_ and _readReplicas.service_ maps.
-- _metrics.service.port_ has been regrouped under the _metrics.service.ports_ map.
-- _serviceAccount.enabled_ and _serviceAccount.autoMount_ have been deprecated in favor of _serviceAccount.create_ and _serviceAccount.automountServiceAccountToken_.
-
-#### How to upgrade to version 11.0.0
-
-To upgrade to _11.0.0_ from _10.x_, it should be done reusing the PVC(s) used to hold the PostgreSQL data on your previous release. To do so, follow the instructions below (the following example assumes that the release name is _postgresql_):
-
-> NOTE: Please, create a backup of your database before running any of these actions.
-
-1. Obtain the credentials and the names of the PVCs used to hold the PostgreSQL data on your current release:
-
-```console
-export POSTGRESQL_PASSWORD=$(kubectl get secret --namespace default postgresql -o jsonpath="{.data.postgresql-password}" | base64 --decode)
-export POSTGRESQL_PVC=$(kubectl get pvc -l app.kubernetes.io/instance=postgresql,role=primary -o jsonpath="{.items[0].metadata.name}")
-```
-
-1. Delete the PostgreSQL statefulset (notice the option _--cascade=false_) and secret:
-
-```console
-kubectl delete statefulsets.apps postgresql-postgresql --namespace default --cascade=false
-kubectl delete secret postgresql --namespace default
-```
-
-1. Upgrade your release using the same PostgreSQL version:
-
-```console
-CURRENT_VERSION=$(kubectl exec postgresql-postgresql-0 -- bash -c 'echo $BITNAMI_IMAGE_VERSION')
-helm upgrade postgresql bitnami/postgresql \
-  --set auth.postgresPassword=$POSTGRESQL_PASSWORD \
-  --set primary.persistence.existingClaim=$POSTGRESQL_PVC \
-  --set image.tag=$CURRENT_VERSION
-```
-
-1. You will have to delete the existing PostgreSQL pod and the new statefulset is going to create a new one
-
-```console
-kubectl delete pod postgresql-postgresql-0
-```
-
-1. Finally, you should see the lines below in PostgreSQL container logs:
-
-```text
-$ kubectl logs $(kubectl get pods -l app.kubernetes.io/instance=postgresql,app.kubernetes.io/name=postgresql,app.kubernetes.io/component=primary -o jsonpath="{.items[0].metadata.name}")
-...
-postgresql 08:05:12.59 INFO  ==> Deploying PostgreSQL with persisted data...
-...
-```
-
-> NOTE: the instructions above reuse the same PostgreSQL version you were using in your chart release. Otherwise, you will find an error such as the one below when upgrading since the new chart major version also bumps the application version. To workaround this issue you need to upgrade database, please refer to the [official PostgreSQL documentation](https://www.postgresql.org/docs/current/upgrading.html) for more information about this.
-
-```console
-$ kubectl logs $(kubectl get pods -l app.kubernetes.io/instance=postgresql,app.kubernetes.io/name=postgresql,app.kubernetes.io/component=primary -o jsonpath="{.items[0].metadata.name}")
-    ...
-postgresql 08:10:14.72 INFO  ==> ** Starting PostgreSQL **
-2022-02-01 08:10:14.734 GMT [1] FATAL:  database files are incompatible with server
-2022-02-01 08:10:14.734 GMT [1] DETAIL:  The data directory was initialized by PostgreSQL version 11, which is not compatible with this version 14.1.
-```
+No major issues are expected during the upgrade.
 
 ### To 10.0.0
 
-[On November 13, 2020, Helm v2 support was formally finished](https://github.com/helm/charts#status-of-the-project), this major version is the result of the required changes applied to the Helm Chart to be able to incorporate the different features added in Helm v3 and to be consistent with the Helm project itself regarding the Helm v2 EOL.
+This major release renames several values in this chart and adds missing features, in order to be inline with the rest of assets in the Bitnami charts repository.
 
-- Previous versions of this Helm Chart use `apiVersion: v1` (installable by both Helm 2 and 3), this Helm Chart was updated to `apiVersion: v2` (installable by Helm 3 only). [Here](https://helm.sh/docs/topics/charts/#the-apiversion-field) you can find more information about the `apiVersion` field.
-- Move dependency information from the _requirements.yaml_ to the _Chart.yaml_
-- After running _helm dependency update_, a _Chart.lock_ file is generated containing the same structure used in the previous _requirements.lock_
-- The different fields present in the _Chart.yaml_ file has been ordered alphabetically in a homogeneous way for all the Bitnami Helm Chart.
-- The term _master_ has been replaced with _primary_ and _slave_ with _readReplicas_ throughout the chart. Role names have changed from _master_ and _slave_ to _primary_ and _read_.
+Affected values:
 
-#### Considerations when upgrading to this version
-
-- If you want to upgrade to this version using Helm v2, this scenario is not supported as this version does not support Helm v2 anymore.
-- If you installed the previous version with Helm v2 and wants to upgrade to this version with Helm v3, please refer to the [official Helm documentation](https://helm.sh/docs/topics/v2_v3_migration/#migration-use-cases) about migrating from Helm v2 to v3.
-
-#### Useful links
-
-- [Bitnami Tutorial](https://docs.bitnami.com/tutorials/resolve-helm2-helm3-post-migration-issues)
-- [Helm docs](https://helm.sh/docs/topics/v2_v3_migration)
-- [Helm Blog](https://helm.sh/blog/migrate-from-helm-v2-to-helm-v3)
-
-#### How to upgrade to version 10.0.0
-
-To upgrade to _10.0.0_ from _9.x_, it should be done reusing the PVC(s) used to hold the PostgreSQL data on your previous release. To do so, follow the instructions below (the following example assumes that the release name is _postgresql_):
-
-> NOTE: Please, create a backup of your database before running any of those actions.
-
-1. Obtain the credentials and the names of the PVCs used to hold the PostgreSQL data on your current release:
-
-```console
-export POSTGRESQL_PASSWORD=$(kubectl get secret --namespace default postgresql -o jsonpath="{.data.postgresql-password}" | base64 --decode)
-export POSTGRESQL_PVC=$(kubectl get pvc -l app.kubernetes.io/instance=postgresql,role=primary -o jsonpath="{.items[0].metadata.name}")
-```
-
-1. Delete the PostgreSQL statefulset (notice the option _--cascade=false_):
-
-```console
-kubectl delete statefulsets.apps postgresql-postgresql --namespace default --cascade=false
-```
-
-1. Upgrade your release using the same PostgreSQL version:
-
-```console
-helm upgrade postgresql bitnami/postgresql \
-  --set postgresqlPassword=$POSTGRESQL_PASSWORD \
-  --set persistence.existingClaim=$POSTGRESQL_PVC
-```
-
-1. Delete the existing PostgreSQL pod and the new statefulset will create a new one:
-
-```console
-kubectl delete pod postgresql-postgresql-0
-```
-
-1. Finally, you should see the lines below in PostgreSQL container logs:
-
-```text
-$ kubectl logs $(kubectl get pods -l app.kubernetes.io/instance=postgresql,app.kubernetes.io/name=postgresql,role=primary -o jsonpath="{.items[0].metadata.name}")
-...
-postgresql 08:05:12.59 INFO  ==> Deploying PostgreSQL with persisted data...
-...
-```
+- `primary.service.port` was deprecated, we recommend using `primary.service.ports.mysql` instead.
+- `primary.service.nodePort` was deprecated, we recommend using `primary.service.nodePorts.mysql` instead.
+- `secondary.service.port` was deprecated, we recommend using `secondary.service.ports.mysql` instead.
+- `secondary.service.nodePort` was deprecated, we recommend using `secondary.service.nodePorts.mysql` instead.
+- `metrics.serviceMonitor.additionalLabels` was deprecated, we recommend using `metrics.serviceMonitor.selector` instead.
+- `primary.pdb.enabled` renamed as `primary.pdb.create`.
+- `secondary.pdb.enabled` renamed as `secondary.pdb.create`.
+- `primary.updateStrategy` changed from String type (previously default to 'rollingUpdate') to Object type, allowing users to configure other updateStrategy parameters, similar to other charts.
+- Removed value `primary.rollingUpdatePartition`, now configured using `primary.updateStrategy` setting `primary.updateStrategy.rollingUpdate.partition`.
+- `secondary.updateStrategy` changed from String type (previously default to 'rollingUpdate') to Object type, allowing users to configure other updateStrategy parameters, similar to other charts.
+- Removed value `secondary.rollingUpdatePartition`, now configured using `secondary.updateStrategy` setting `secondary.updateStrategy.rollingUpdate.partition`.
+- `metrics.serviceMonitor.relabellings`, previously used to configure ServiceMonitor metricRelabelings, has been replaced with the value `metrics.serviceMonitor.metricRelabelings`, and new value `metrics.serviceMonitor.relabelings` can be used to set ServiceMonitor relabelings parameter
 
 ### To 9.0.0
 
-In this version the chart was adapted to follow the [Helm standard labels](https://helm.sh/docs/chart_best_practices/labels/#standard-labels).
+[On November 13, 2020, Helm v2 support was formally finished](https://github.com/helm/charts#status-of-the-project), this major version is the result of the required changes applied to the Helm Chart to be able to incorporate the different features added in Helm v3 and to be consistent with the Helm project itself regarding the Helm v2 EOL.
 
-- Some inmutable objects were modified to adopt Helm standard labels introducing backward incompatibilities.
+### To 8.0.0
 
-#### How to upgrade to version 9.0.0
+- Several parameters were renamed or disappeared in favor of new ones on this major version:
+  - The terms _master_ and _slave_ have been replaced by the terms _primary_ and _secondary_. Therefore, parameters prefixed with `master` or `slave` are now prefixed with `primary` or `secondary`, respectively.
+  - `securityContext.*` is deprecated in favor of `primary.podSecurityContext`, `primary.containerSecurityContext`, `secondary.podSecurityContext`, and `secondary.containerSecurityContext`.
+  - Credentials parameter are reorganized under the `auth` parameter.
+  - `replication.enabled` parameter is deprecated in favor of `architecture` parameter that accepts two values: `standalone` and `replication`.
+- The default MariaDB version was updated from 10.3 to 10.5. According to the official documentation, upgrading from 10.3 should be painless. However, there are some things that have changed which could affect an upgrade:
+  - [Incompatible changes upgrading from MariaDB 10.3 to MariaDB 10.4](https://mariadb.com/kb/en/upgrading-from-mariadb-103-to-mariadb-104/#incompatible-changes-between-103-and-104).
+  - [Incompatible changes upgrading from MariaDB 10.4 to MariaDB 10.5](https://mariadb.com/kb/en/upgrading-from-mariadb-104-to-mariadb-105/#incompatible-changes-between-104-and-105).
+- Chart labels were adapted to follow the [Helm charts standard labels](https://helm.sh/docs/chart_best_practices/labels/#standard-labels).
+- This version also introduces `bitnami/common`, a [library chart](https://helm.sh/docs/topics/library_charts/#helm) as a dependency. More documentation about this new utility could be found [here](https://github.com/bitnami/charts/tree/main/bitnami/common#bitnami-common-library-chart). Please, make sure that you have updated the chart dependencies before executing any upgrade.
 
-To upgrade to _9.0.0_ from _8.x_, it should be done reusing the PVC(s) used to hold the PostgreSQL data on your previous release. To do so, follow the instructions below (the following example assumes that the release name is _postgresql_):
+Consequences:
 
-> NOTE: Please, create a backup of your database before running any of those actions.
+Backwards compatibility is not guaranteed. To upgrade to `8.0.0`, install a new release of the MariaDB chart, and migrate the data from your previous release. You have 2 alternatives to do so:
 
-1. Obtain the credentials and the names of the PVCs used to hold the PostgreSQL data on your current release:
-
-```console
-export POSTGRESQL_PASSWORD=$(kubectl get secret --namespace default postgresql -o jsonpath="{.data.postgresql-password}" | base64 --decode)
-export POSTGRESQL_PVC=$(kubectl get pvc -l app=postgresql,role=master -o jsonpath="{.items[0].metadata.name}")
-```
-
-1. Delete the PostgreSQL statefulset (notice the option _--cascade=false_):
-
-```console
-kubectl delete statefulsets.apps postgresql-postgresql --namespace default --cascade=false
-```
-
-1. Upgrade your release using the same PostgreSQL version:
+- Create a backup of the database, and restore it on the new release using tools such as [mysqldump](https://mariadb.com/kb/en/mysqldump/).
+- Reuse the PVC used to hold the master data on your previous release. To do so, use the `primary.persistence.existingClaim` parameter. The following example assumes that the release name is `mariadb`:
 
 ```console
-helm upgrade postgresql bitnami/postgresql \
-  --set postgresqlPassword=$POSTGRESQL_PASSWORD \
-  --set persistence.existingClaim=$POSTGRESQL_PVC
+helm install mariadb oci://REGISTRY_NAME/REPOSITORY_NAME/mariadb --set auth.rootPassword=[ROOT_PASSWORD] --set primary.persistence.existingClaim=[EXISTING_PVC]
 ```
 
-1. Delete the existing PostgreSQL pod and the new statefulset will create a new one:
+> Note: You need to substitute the placeholders `REGISTRY_NAME` and `REPOSITORY_NAME` with a reference to your Helm chart registry and repository. For example, in the case of Bitnami, you need to use `REGISTRY_NAME=registry-1.docker.io` and `REPOSITORY_NAME=bitnamicharts`.
+
+| Note: you need to substitute the placeholder _[EXISTING_PVC]_ with the name of the PVC used on your previous release, and _[ROOT_PASSWORD]_ with the root password used in your previous release.
+
+### To 7.0.0
+
+Helm performs a lookup for the object based on its group (apps), version (v1), and kind (Deployment). Also known as its GroupVersionKind, or GVK. Changing the GVK is considered a compatibility breaker from Kubernetes' point of view, so you cannot "upgrade" those objects to the new GVK in-place. Earlier versions of Helm 3 did not perform the lookup correctly which has since been fixed to match the spec.
+
+In <https://github.com/helm/charts/pull/17308> the `apiVersion` of the statefulset resources was updated to `apps/v1` in tune with the api's deprecated, resulting in compatibility breakage.
+
+This major version bump signifies this change.
+
+### To 6.0.0
+
+MariaDB version was updated from 10.1 to 10.3, there are no changes in the chart itself. According to the official documentation, upgrading from 10.1 should be painless. However, there are some things that have changed which could affect an upgrade:
+
+- [Incompatible changes upgrading from MariaDB 10.1 to MariaDB 10.2](https://mariadb.com/kb/en/library/upgrading-from-mariadb-101-to-mariadb-102//#incompatible-changes-between-101-and-102)
+- [Incompatible changes upgrading from MariaDB 10.2 to MariaDB 10.3](https://mariadb.com/kb/en/library/upgrading-from-mariadb-102-to-mariadb-103/#incompatible-changes-between-102-and-103)
+
+### To 5.0.0
+
+Backwards compatibility is not guaranteed unless you modify the labels used on the chart's deployments.
+Use the workaround below to upgrade from versions previous to 5.0.0. The following example assumes that the release name is mariadb:
 
 ```console
-kubectl delete pod postgresql-postgresql-0
-```
-
-1. Finally, you should see the lines below in PostgreSQL container logs:
-
-```text
-$ kubectl logs $(kubectl get pods -l app.kubernetes.io/instance=postgresql,app.kubernetes.io/name=postgresql,role=master -o jsonpath="{.items[0].metadata.name}")
-...
-postgresql 08:05:12.59 INFO  ==> Deploying PostgreSQL with persisted data...
-...
+kubectl delete statefulset opencart-mariadb --cascade=false
 ```
 
 ## License
