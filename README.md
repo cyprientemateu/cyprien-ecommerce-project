@@ -122,6 +122,7 @@ cyprien-ecommerce-project/
 │
 ├── docker-compose.yml      # local dev only — not a deployment path
 ├── sonar-project.properties
+├── .gitattributes          # LF line endings everywhere (repo is edited from Windows and WSL)
 └── README.md
 ```
 
@@ -141,13 +142,14 @@ cyprien-ecommerce-project/
 
 ## ✅ Current Capabilities
 
-See [`docs/ENGINEERING_JOURNAL.md`](docs/ENGINEERING_JOURNAL.md#-current-capabilities-as-of-session-7) for the full, kept-up-to-date snapshot. As of the latest session:
+See [`docs/ENGINEERING_JOURNAL.md`](docs/ENGINEERING_JOURNAL.md#-current-capabilities-as-of-session-9) for the full, kept-up-to-date snapshot. As of the latest session:
 
 - Consolidated CI pipeline, replacing three overlapping legacy Jenkinsfiles — **verified with a fully green, end-to-end run**
 - Real per-service unit tests, including `cart`'s DynamoDB-dependent tests (a legacy test-skipping bug is fixed)
 - Secrets scanning, dual SAST, per-language SCA, container image scanning, SBOM generation, and image signing all running on every push; all 11 image variants build and push successfully to Docker Hub
 - `repository_dispatch` successfully notifies the automation repo on every push to `main`
 - **Full deployment pipeline working end to end**: a local kind cluster + ArgoCD run all 11 services from personal Docker Hub images, managed declaratively from the automation repo — see that repo's README for the chart/GitOps details
+- **Verified by the application, not just by pod status**: `orders` reports `UP` on `/actuator/health`, and a real browser checkout was persisted in its MariaDB. ArgoCD's behaviour was exercised in both directions — a Git change rolled out to the cluster without touching `kubectl`, and a manual cluster change was reverted by `selfHeal` (journal Sessions 8–9, with screenshots)
 - Next up: the `repository_dispatch` receiving workflow (image tag bumps are still manual), Sealed Secrets for the two remaining plaintext-ish datastore credentials, and triaging the report-only findings — see the journal's roadmap
 
 ---
@@ -162,6 +164,15 @@ The legacy pipeline ran `mvn test -DskipTests=true` for two of the five services
 
 ### Committed base64 is not encryption
 Two Kubernetes `Secret` objects with real database passwords (base64-encoded, per the Kubernetes Secret spec) were committed directly to a template file. Base64 is an encoding, not encryption — anyone with read access to the repo has the plaintext credential. Treat any such exposure as a compromised credential regardless of whether git history is later scrubbed, and rotate it.
+
+### `1/1 Running` and ArgoCD `Healthy` are not the same as working
+None of the app charts define readiness probes, so Kubernetes reports a pod ready the moment its container starts — and `orders` sat "Running" while it crash-looped for the whole of its first deployment. It was only found by reading `kubectl logs --previous`, which showed it needed a JDBC driver its image never shipped. The check that counts is the application's own endpoint (`/actuator/health`) and a real request, over a window longer than the crash-loop backoff.
+
+### A chart that renders cleanly can still be wired to the wrong thing
+The `orders` chart pointed at PostgreSQL; the image only contains the MariaDB driver. `helm template` was happy and so was Kubernetes — only the application's own dependency list (`pom.xml`) showed the mismatch.
+
+### Two Git installs on one working tree need an explicit line-ending rule
+Editing the same checkout from Windows and WSL made WSL Git report every file as changed (`^M` in `git diff`), because the two installs disagreed about CRLF. A `.gitattributes` with `* text=auto eol=lf` makes the repository, not each machine's config, decide.
 
 ### An EOL runtime is a free security finding
 The `checkout` service's CI test image was pinned to `node:14`, end-of-life since April 2023 — an easy first hit for any dependency/image scanner and a reminder to check runtime support windows during any pipeline migration, not just application dependencies.
@@ -179,6 +190,9 @@ Rather than giving this repo's CI a token that can `git push` into the automatio
 - Roll out new hard-fail security gates in report-only mode first, then flip to blocking once the baseline is triaged
 - Keep hygiene commits (dead file removal) separate from functional pipeline changes
 - Document every phase, including bugs found and their root cause — not just the end state
+- Verify deployments with the application's own health endpoint and a real request, not just pod status
+- Redact personal data (e.g. a commit-author email) from screenshots before they enter a public repo
+- Correct earlier documentation openly (with a dated note) when later work disproves it, rather than rewriting history
 
 ---
 

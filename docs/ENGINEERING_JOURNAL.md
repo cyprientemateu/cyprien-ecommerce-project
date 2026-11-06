@@ -381,7 +381,86 @@ Replaced the PostgreSQL `orders-db` chart with a second copy of the MariaDB char
 
 ---
 
-# 📊 Current Capabilities (as of Session 8)
+# SESSION 9 — 2026-11-06 — Manual Rebuild, Part 2: ArgoCD From Scratch, and Proving GitOps Both Ways
+
+## Objective
+Finish the manual rebuild started in Session 8, this time with ArgoCD included: install it by hand, let it deploy the chart from GitHub, and then actually test what GitOps promises instead of just watching a green status — both directions (Git → cluster, and cluster drift → reverted).
+
+## What I Did
+
+### Bringing the cluster back
+`docker start revive-control-plane` restored the stopped kind node (`Ready`, v1.32.0). Every system pod showed one restart, which is normal after a stop/start. The previous day's Helm release had been uninstalled, so `revive-dev` was an empty namespace — a precondition, because ArgoCD cannot adopt a namespace that already holds a Helm-managed release.
+
+### Installing ArgoCD by hand
+Created an `argocd` namespace and applied the official manifest with `kubectl apply --server-side --force-conflicts` (plain `apply` fails on the `applicationsets` CRD with `metadata.annotations: Too long`, the same issue as Session 7). The install created CRDs, RBAC, ConfigMaps, Services, six Deployments and a StatefulSet, plus ArgoCD's own NetworkPolicies. At about 86 seconds three pods were still `PodInitializing` (image pulls); by 5 minutes all 7 were `1/1 Running` with 0 restarts. I retrieved the generated admin password from the `argocd-initial-admin-secret` Secret — a reminder that a Kubernetes Secret is base64-encoded, not encrypted — and reached the UI (v3.6.1) through a port-forward.
+
+### Applying the Application
+Before applying `argocd/application-dev.yaml` I worked out what each block means. `source` is the Git repo, branch and chart path plus the values files; `destination` is the target cluster and namespace (`https://kubernetes.default.svc` means "the cluster ArgoCD itself runs in"); `syncPolicy.automated` is about whether a human must approve a sync — `prune` deletes cluster resources removed from Git, `selfHeal` reverts manual drift back to what Git says. ArgoCD then deployed from GitHub, not from local files: `Synced` to `main (f7dcfec)`, 63 resources `Synced`, 47 `Healthy`, with the MariaDB `orders` chart from Session 8 — which is why that fix had to be pushed before this step.
+
+### Verified properly this time
+All 11 pods read `1/1` after 56 seconds, which cannot be true of JVM services that need about 3 minutes — the same blind spot as Session 8. So I did not stop at ArgoCD's `Healthy`:
+- `orders` returned `{"status":"UP","groups":["liveness","readiness"]}` on `/actuator/health`.
+- At 7 minutes every pod had 0 restarts except `catalog` at 3, and that count had stopped climbing (most likely it started before its MariaDB was accepting connections and retried; I did not inspect its logs).
+
+### What ArgoCD does, and what Kubernetes does
+I tested the difference by hand:
+- **Deleting a pod** (`ui` via `kubectl`, `carts` through the UI): the ReplicaSet created a replacement within seconds. That is Kubernetes' own controller loop — it works whether or not ArgoCD exists. While the replacement `carts` JVM booted, ArgoCD showed the app as `Progressing`, then `Healthy`.
+- **Scaling the `ui` Deployment to 3 by hand**: reverted to 1 within seconds. With a watch running, `READY` went `1/1 → 1/3`, `UP-TO-DATE 3`, then back to `1/1` and `UP-TO-DATE 1`, and the extra pods never became available. `status.operationState.operation.initiatedBy` was `{"automated":true}` — ArgoCD started that sync itself. This is `selfHeal`, and it only applies when the Deployment's *declared spec* drifts from Git; a pod is owned by a ReplicaSet and is Kubernetes' job.
+- One small trap: my first scale commands failed with `deployment "revive-ui" not found`. Resource names derive from the Helm release name, which under ArgoCD is the Application name (`revive-dev`), so the Deployment is `revive-dev-ui`. Session 8's manual release was named `revive`.
+
+### The GitOps loop, Git → cluster
+I changed `ui`'s `replicaCount` from 1 to 2 in `chart/values-dev.yaml`, committed (`477de55`) and pushed. ArgoCD picked it up and showed `Synced` to `477de55` with two `ui` pods. I then reverted it to 1 (`e435126`) and watched ArgoCD scale back down — no `kubectl` change was made for either rollout. ArgoCD has no webhook from GitHub here, so it finds out by polling (about every 3 minutes) unless you click Refresh or annotate the Application. I was impatient and checked before the poll; it caught up on its own.
+
+### Two environment problems that cost time
+- **`git push` from WSL failed with `Permission denied (publickey)`.** The remote is SSH and WSL had no key GitHub knew about; earlier pushes had run from the Windows side. I generated a separate `ed25519` key in WSL, loaded it into `ssh-agent`, pointed `~/.ssh/config` at it, added only the `.pub` half to GitHub, and confirmed with `ssh -T git@github.com` before pushing the revert from WSL. (The first connection also prompted to trust GitHub's host key — worth checking that fingerprint against GitHub's published one rather than answering `yes` blindly.)
+- **`git diff` in WSL showed every file as changed, with `^M` on each line.** The files were stored with LF but checked out as CRLF by Windows Git (`core.autocrlf=true`), and WSL Git had no such setting. Nothing was actually modified — Windows Git showed a clean tree apart from the one real edit — but a `git add -A` from WSL would have committed whole-file whitespace changes. Interim fix: `git config core.autocrlf true` in that repo. Permanent fix: a `.gitattributes` in both repos (below).
+
+### `.gitattributes` in both repos
+Both indexes were already pure LF (0 CRLF files), so the rules enforce what is already true: `* text=auto eol=lf`, `*.sh` forced to LF (CRLF breaks a shebang line), `*.cmd`/`*.bat` forced to CRLF (the app repo's `mvnw.cmd` needs it on Windows), and common binary types marked `binary`. Before committing I ran `git add --renormalize .` for real, listed what it changed in the index (nothing outside the new file), and reset — so the change is provably a no-op on existing content.
+
+## Capabilities at this point
+- ArgoCD installed by hand and managing `revive-dev` from GitHub, with 11 services running
+- GitOps proven in both directions: a Git commit changes the cluster, and a manual cluster change is reverted
+- The difference between ArgoCD's `selfHeal` and Kubernetes' own ReplicaSet repair is demonstrated, not just read about
+- Git works from both Windows and WSL on the same checkouts, with line endings enforced by the repository itself
+
+## Lessons Learned
+- **ArgoCD `Healthy` inherits the weakness of the pod's readiness signal.** With no readiness probes it can report green while a JVM is still booting. Verify with the application's own endpoint, and over a window longer than startup.
+- **Know which layer is doing the repairing.** Pod deleted → ReplicaSet (Kubernetes). Deployment spec edited by hand → ArgoCD `selfHeal`. Mixing those up makes both harder to debug.
+- **Resource names depend on the Helm release name**, which ArgoCD sets from the Application name. A command copied from a manual `helm install revive` run does not match an ArgoCD-managed `revive-dev`.
+- **A polling-based GitOps tool is not instant.** Without a webhook, expect up to about 3 minutes, and know how to force a refresh.
+- **"Whole file changed" in a diff is often only line endings.** Check `git ls-files --eol` (index vs working tree) before believing it, and never `git add -A` until you know which kind of change you are looking at.
+- **When two tools share one working tree, put the rule in the repo, not in each machine's config.** `.gitattributes` travels with the repository; `core.autocrlf` does not.
+- **Test a rule before committing it.** `git add --renormalize .`, inspect, `git reset` shows exactly what a `.gitattributes` would rewrite.
+- A personal email appeared in ArgoCD's commit-author display and in screenshots. Redact before publishing — and note the same address is in the metadata of every public commit (GitHub's `@users.noreply.github.com` address avoids that for future commits).
+
+## 📸 Evidence
+Bringing it up:
+- [Cluster restarted, node `Ready`, `argocd` namespace created](../images/screenshots/s9-01-cluster-restart-argocd-namespace.png)
+- ArgoCD install, `--server-side` apply output: [1](../images/screenshots/s9-02a-argocd-install-server-side-apply.png) · [2](../images/screenshots/s9-02b-argocd-install-server-side-apply-networkpolicies.png)
+- [ArgoCD pods still initializing at ~86s](../images/screenshots/s9-03-argocd-pods-initializing.png) → [all 7 `1/1 Running`, 0 restarts](../images/screenshots/s9-04-argocd-pods-running.png)
+- [Port-forward to the ArgoCD UI](../images/screenshots/s9-05-argocd-ui-port-forward.png)
+
+Deploying and verifying:
+- [Application applied; pods starting, `catalog` at 3 restarts early on](../images/screenshots/s9-06-application-applied-pods-starting.png)
+- [`revive-dev` `Synced` + `Healthy` to `f7dcfec` — resource tree (author email redacted)](../images/screenshots/s9-07-argocd-revive-dev-synced-healthy.png)
+- [Applications list: `Healthy` / `Synced`](../images/screenshots/s9-08-argocd-applications-list-healthy-synced.png)
+- [`orders` `/actuator/health` → `UP`](../images/screenshots/s9-09-orders-actuator-health-up.png)
+- [`Synced`/`Healthy` and all pods stable at 7 minutes](../images/screenshots/s9-10-argocd-app-synced-pods-stable.png)
+
+What heals what:
+- [A deleted `ui` pod replaced by its ReplicaSet](../images/screenshots/s9-11-pod-deleted-replicaset-recreates.png)
+- [Manual scale reverted by ArgoCD (including the wrong-name `revive-ui` attempt)](../images/screenshots/s9-12-selfheal-scale-reverted-terminal.png)
+- [ArgoCD `Progressing` while a replacement `carts` pod boots (author email redacted)](../images/screenshots/s9-13-argocd-progressing-carts-pod-replaced.png)
+- [Watching `READY` go 1/1 → 1/3 → 1/1; `initiatedBy: {"automated":true}`](../images/screenshots/s9-14-selfheal-scale-watch-automated-sync.png)
+
+GitOps, Git → cluster:
+- [`Synced` to `477de55` "run 2 ui replicas" — two `ui` pods (author email redacted)](../images/screenshots/s9-15-gitops-two-ui-replicas-synced.png)
+- [`Synced` to `e435126` "back to 1 ui replica" — one `ui` pod (author email redacted)](../images/screenshots/s9-16-gitops-back-to-one-ui-replica-synced.png)
+
+---
+
+# 📊 Current Capabilities (as of Session 9)
 
 ## Done
 - Both repos on stable, corruption-free git, outside OneDrive sync
@@ -390,8 +469,11 @@ Replaced the PostgreSQL `orders-db` chart with a second copy of the MariaDB char
 - `repository_dispatch` fires successfully to the automation repo on every push to `main`
 - Local kind cluster + ArgoCD running and stable
 - Automation repo's chart is a real, working umbrella chart (11 vendored subcharts), `deploy.yaml` and its committed secrets are gone
-- All 11 services deploy and run correctly. Verified paths: `ui → catalog → mariadb` (an actual HTTP request, Session 7) and `orders → orders-db` via `/actuator/health` and `GET /orders` (Session 8). Other service-to-service paths (carts, checkout) have not been exercised the same way yet
+- All 11 services deploy and run correctly. Verified paths: `ui → catalog → mariadb` (an actual HTTP request, Session 7) and `orders → orders-db` via `/actuator/health` and `GET /orders` (Session 8), and a real browser checkout persisted a row (`ui → checkout → orders → orders-db`, Sessions 8–9). The upstream checkout never forwards cart contents, so the `carts` leg of an order is not exercised end to end
 - ArgoCD manages the `revive-dev` environment declaratively from GitHub, auto-sync + self-heal
+- GitOps verified in both directions on a live cluster (Session 9): Git commits roll out and back with no `kubectl`, and manual drift is reverted by `selfHeal`
+- ArgoCD installed by hand from an empty `argocd` namespace (Session 9), reproducible from the automation repo README
+- `.gitattributes` in both repos enforces LF endings; Git works from both Windows and WSL (SSH key set up in WSL)
 - `revive-production` Application exists, manual-sync only, not yet tracking a real release
 
 ## Not Yet Done
@@ -403,6 +485,9 @@ Replaced the PostgreSQL `orders-db` chart with a second copy of the MariaDB char
 - Report-only CI findings (Semgrep, Trivy, govulncheck: 39, npm audit: 96) not yet triaged
 - Spring Boot Actuator fully exposed on `cart`/`orders`/`ui`; `checkout` has no unit test coverage
 - `revive-production` Application not yet pointed at a real release artifact
+- ArgoCD's `prune` (deleting a resource that is removed from Git) has not been exercised — only replica-count changes were tested
+- ArgoCD finds changes by polling (about every 3 minutes); there is no GitHub webhook
+- No readiness probes on the app charts, so ArgoCD `Healthy` / `1/1 Running` does not prove a service is actually ready
 
 ---
 
@@ -412,6 +497,7 @@ Replaced the PostgreSQL `orders-db` chart with a second copy of the MariaDB char
 - Wire the `repository_dispatch` → automation-repo receiving workflow so a commit in the app repo flows untouched-by-hand into a running pod in kind (the last piece of the CI→CD loop)
 - Rotate the MariaDB credentials still inherited from the vendored charts' defaults and replace them with Sealed Secrets
 - Chart hardening found in Session 8: add readiness/liveness probes to the app charts, a config checksum annotation so ConfigMap/Secret changes roll pods, fix the overlapping PodDisruptionBudgets, and stop pairing `pullPolicy: Always` with `:latest`
+- Exercise ArgoCD `prune` deliberately: remove a small resource from the chart, push, and confirm ArgoCD deletes it from the cluster
 - Triage the report-only findings (Semgrep, Trivy, govulncheck, npm audit): fix the Spring Boot Actuator over-exposure, decide on a remediation plan for the frozen npm/Go dependency baselines before flipping any gate to blocking
 - Write real unit test coverage for `checkout`
 
@@ -427,6 +513,8 @@ Replaced the PostgreSQL `orders-db` chart with a second copy of the MariaDB char
 - Production promotion path: point `revive-production`'s Application at a real semver release tag, gated by the existing `validate-release-tag` CI job
 - Full README/documentation polish in both repos reflecting the finished architecture
 - Consider whether a low-cost managed Kubernetes target (vs. local kind) is worth adding for a more "always-on" portfolio demo
+- Optionally replace ArgoCD's Git polling with a webhook (needs a reachable endpoint — a relay/tunnel for a local kind cluster) so syncs are immediate
+- Optionally switch the commit author email to GitHub's `@users.noreply.github.com` address for new commits (existing history keeps the old one)
 
 ---
 
