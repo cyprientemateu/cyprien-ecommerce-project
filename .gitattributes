@@ -1,0 +1,27 @@
+# Line endings: every text file is stored with LF in the repository and checked
+# out with LF on every platform and tool (Windows Git, WSL Git, CI runners).
+#
+# Why: this working tree is edited from both Windows and WSL. Without an
+# explicit rule, the two Git installs disagree about CRLF, so one of them
+# reports whole files as modified (a wall of ^M in `git diff`), and a careless
+# `git add -A` from the wrong side can commit that noise.
+* text=auto eol=lf
+
+# Shell scripts must never get CRLF (it breaks the shebang line and bash).
+*.sh text eol=lf
+
+# Windows-only scripts need CRLF to run on Windows (e.g. mvnw.cmd).
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binary files: never touch.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.jar binary
+*.zip binary
+*.gz binary
+*.tgz binary
